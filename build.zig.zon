@@ -1,0 +1,11 @@
+.{
+    .name = .pcre2,
+    .version = "10.47.0",
+    .fingerprint = 0x914b3d636e13b44b,
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENCE.md",
+    },
+}
