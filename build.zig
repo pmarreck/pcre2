@@ -69,15 +69,15 @@ pub fn build(b: *std.Build) !void {
         .linkage = linkage,
     });
 
-    lib.addConfigHeader(config_header);
-    lib.addIncludePath(pcre2_header_dir.getDirectory());
-    lib.addIncludePath(b.path("src"));
+    lib.root_module.addConfigHeader(config_header);
+    lib.root_module.addIncludePath(pcre2_header_dir.getDirectory());
+    lib.root_module.addIncludePath(b.path("src"));
 
-    lib.addCSourceFile(.{
+    lib.root_module.addCSourceFile(.{
         .file = b.addWriteFiles().addCopyFile(b.path("src/pcre2_chartables.c.dist"), "pcre2_chartables.c"),
     });
 
-    lib.addCSourceFiles(.{
+    lib.root_module.addCSourceFiles(.{
         .files = &.{
             "src/pcre2_auto_possess.c",
             "src/pcre2_chkdint.c",
@@ -158,35 +158,35 @@ pub fn build(b: *std.Build) !void {
             .linkage = linkage,
         });
 
-        posixLib.addConfigHeader(config_header);
-        posixLib.addIncludePath(pcre2_header_dir.getDirectory());
-        posixLib.addIncludePath(b.path("src"));
+        posixLib.root_module.addConfigHeader(config_header);
+        posixLib.root_module.addIncludePath(pcre2_header_dir.getDirectory());
+        posixLib.root_module.addIncludePath(b.path("src"));
 
-        posixLib.addCSourceFiles(.{
+        posixLib.root_module.addCSourceFiles(.{
             .files = &.{
                 "src/pcre2posix.c",
             },
         });
 
-        posixLib.linkLibrary(lib);
+        posixLib.root_module.linkLibrary(lib);
 
         posixLib.installHeader(b.path("src/pcre2posix.h"), "pcre2posix.h");
         b.installArtifact(posixLib);
 
-        pcre2test.linkLibrary(posixLib);
+        pcre2test.root_module.linkLibrary(posixLib);
     }
 
     // pcre2test (again)
 
-    pcre2test.addConfigHeader(config_header);
-    pcre2test.addIncludePath(pcre2_header_dir.getDirectory());
-    pcre2test.addIncludePath(b.path("src"));
+    pcre2test.root_module.addConfigHeader(config_header);
+    pcre2test.root_module.addIncludePath(pcre2_header_dir.getDirectory());
+    pcre2test.root_module.addIncludePath(b.path("src"));
 
-    pcre2test.addCSourceFile(.{
+    pcre2test.root_module.addCSourceFile(.{
         .file = b.path("src/pcre2test.c"),
     });
 
-    pcre2test.linkLibrary(lib);
+    pcre2test.root_module.linkLibrary(lib);
 
     b.installArtifact(pcre2test);
 }
