@@ -114,6 +114,7 @@ src/stamp-h1
 zig-out/
 zig-cache/
 .zig-cache/
+/result
 
 # Folders that may be used by individual developers, without appearing in git
 # status output.

@@ -1423,6 +1423,18 @@ echo RunGrepTest.bat tests successfully completed
   if(PCRE2_BUILD_PCRE2_8)
     add_test(pcre2posix_test pcre2posix_test)
   endif()
+  foreach(width 8 16 32)
+    if(PCRE2_BUILD_PCRE2_${width})
+      add_executable(dfa_compatibility_${width} tests/dfa_compatibility.c)
+      target_compile_definitions(dfa_compatibility_${width} PRIVATE PCRE2_CODE_UNIT_WIDTH=${width})
+      if(BUILD_STATIC_LIBS)
+        target_compile_definitions(dfa_compatibility_${width} PRIVATE PCRE2_STATIC)
+      endif()
+      target_include_directories(dfa_compatibility_${width} PRIVATE ${PROJECT_BINARY_DIR})
+      target_link_libraries(dfa_compatibility_${width} PRIVATE pcre2-${width})
+      add_test(NAME dfa_compatibility_${width} COMMAND dfa_compatibility_${width})
+    endif()
+  endforeach()
 endif()
 
 # Installation

@@ -33,6 +33,8 @@ request are as follows:
 .\" JOIN
   PCRE2_INFO_DEPTHLIMIT      Backtracking depth limit if set,
                                otherwise PCRE2_ERROR_UNSET
+  PCRE2_INFO_DFA_COMPATIBILITY
+                            Conservative DFA compatibility result (fork extension)
   PCRE2_INFO_EXTRAOPTIONS    Extra options that were passed in the
                                compile context
   PCRE2_INFO_FIRSTBITMAP     Bitmap of first code units, or NULL
@@ -85,6 +87,7 @@ following \fIwhat\fP values, when it must point to a variable of the type
 shown:
 .sp
   PCRE2_INFO_FIRSTBITMAP     const uint8_t *
+  PCRE2_INFO_DFA_COMPATIBILITY int
   PCRE2_INFO_JITSIZE         size_t
   PCRE2_INFO_NAMETABLE       PCRE2_SPTR
   PCRE2_INFO_SIZE            size_t
@@ -96,6 +99,19 @@ The yield of the function is zero on success or:
   PCRE2_ERROR_BADOPTION      the value of \fIwhat\fP is invalid
   PCRE2_ERROR_BADMODE        the pattern was compiled in the wrong mode
   PCRE2_ERROR_UNSET          the requested information is not set
+.P
+The fork extension PCRE2_INFO_DFA_COMPATIBILITY inspects all compiled
+instructions without matching a subject. The output integer is zero for a
+pattern that passes this conservative check, or PCRE2_ERROR_DFA_UITEM,
+PCRE2_ERROR_DFA_UCOND, PCRE2_ERROR_DFA_UINVALID_UTF, or
+PCRE2_ERROR_DFA_RECURSE. The function itself returns zero when the query
+succeeds, including when its output reports incompatibility.
+.P
+Recursion and subroutine calls are conservatively rejected, including
+nonrecursive calls. Unreachable compiled branches are also checked. A passing
+result does not eliminate allocation failures, resource limits, invalid
+input or option errors, or errors from installed callouts. Revalidate after
+changing compilation options or engine versions.
 .P
 There is a complete description of the PCRE2 native API in the
 .\" HREF

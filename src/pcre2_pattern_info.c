@@ -41,6 +41,85 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "pcre2_internal.h"
 
+static int enumerate_pattern(const pcre2_code *,
+  int (*)(pcre2_callout_enumerate_block *, void *), void *, BOOL);
+
+/* Keep the opcode-range checks below tied to the audited instruction set.
+An upstream opcode addition must trigger review rather than silent acceptance. */
+typedef char dfa_opcode_review[(OP_TABLE_LENGTH == 173)? 1 : -1];
+
+/* Inspect operands as well as opcodes. This is deliberately conservative for
+unreachable branches, which remain part of the compiled pattern. */
+static int
+dfa_compatibility(PCRE2_SPTR cc)
+{
+uint32_t op = *cc;
+if (op <= OP_ECLASS)
+  {
+  if (op == OP_SET_SOM || op == OP_ANYBYTE) return PCRE2_ERROR_DFA_UITEM;
+  if (op >= OP_TYPESTAR && op <= OP_TYPEPOSUPTO)
+    {
+    unsigned offset = (op >= OP_TYPEUPTO && op <= OP_TYPEEXACT) ||
+      op == OP_TYPEPOSUPTO? 1 + IMM2_SIZE : 1;
+    if (cc[offset] == OP_ANYBYTE) return PCRE2_ERROR_DFA_UITEM;
+    }
+  return 0;
+  }
+
+switch (op)
+  {
+  case OP_CALLOUT:
+  case OP_CALLOUT_STR:
+  case OP_ALT:
+  case OP_KET:
+  case OP_KETRMAX:
+  case OP_KETRMIN:
+  case OP_KETRPOS:
+  case OP_REVERSE:
+  case OP_ASSERT:
+  case OP_ASSERT_NOT:
+  case OP_ASSERTBACK:
+  case OP_ASSERTBACK_NOT:
+  case OP_ONCE:
+  case OP_BRA:
+  case OP_BRAPOS:
+  case OP_CBRA:
+  case OP_CBRAPOS:
+  case OP_COND:
+  case OP_SBRA:
+  case OP_SBRAPOS:
+  case OP_SCBRA:
+  case OP_SCBRAPOS:
+  case OP_SCOND:
+  case OP_FALSE:
+  case OP_TRUE:
+  case OP_BRAZERO:
+  case OP_BRAMINZERO:
+  case OP_BRAPOSZERO:
+  case OP_FAIL:
+  case OP_SKIPZERO:
+  case OP_NOT_UCP_WORD_BOUNDARY:
+  case OP_UCP_WORD_BOUNDARY:
+  return 0;
+
+  case OP_RREF:
+  return GET2(cc, 1) == RREF_ANY? 0 : PCRE2_ERROR_DFA_UCOND;
+
+  case OP_CREF:
+  case OP_DNCREF:
+  case OP_DNRREF:
+  return PCRE2_ERROR_DFA_UCOND;
+
+  case OP_RECURSE:
+  /* Even supported calls can hit RECURSELOOP or the internal ovector limit.
+  Decline to certify calls, including nonrecursive subroutine calls. */
+  return cc[1 + LINK_SIZE] == OP_CREF?
+    PCRE2_ERROR_DFA_UITEM : PCRE2_ERROR_DFA_RECURSE;
+
+  default:
+  return PCRE2_ERROR_DFA_UITEM;
+  }
+}
 
 
 /*************************************************
@@ -67,6 +146,9 @@ if (where == NULL)   /* Requests field length */
   {
   switch(what)
     {
+    case PCRE2_INFO_DFA_COMPATIBILITY:
+    return sizeof(int);
+
     case PCRE2_INFO_ALLOPTIONS:
     case PCRE2_INFO_ARGOPTIONS:
     case PCRE2_INFO_BACKREFMAX:
@@ -117,6 +199,11 @@ if ((re->flags & (PCRE2_CODE_UNIT_WIDTH/8)) == 0) return PCRE2_ERROR_BADMODE;
 
 switch(what)
   {
+  case PCRE2_INFO_DFA_COMPATIBILITY:
+  *((int *)where) = (re->overall_options & PCRE2_MATCH_INVALID_UTF) != 0?
+    PCRE2_ERROR_DFA_UINVALID_UTF : enumerate_pattern(code, NULL, NULL, TRUE);
+  break;
+
   case PCRE2_INFO_ALLOPTIONS:
   *((uint32_t *)where) = re->overall_options;
   break;
@@ -262,9 +349,10 @@ Returns:        0 when successfully completed
                != 0 for callback error
 */
 
-PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
-pcre2_callout_enumerate(const pcre2_code *code,
-  int (*callback)(pcre2_callout_enumerate_block *, void *), void *callout_data)
+static int
+enumerate_pattern(const pcre2_code *code,
+  int (*callback)(pcre2_callout_enumerate_block *, void *), void *callout_data,
+  BOOL check_dfa)
 {
 const pcre2_real_code *re = (const pcre2_real_code *)code;
 pcre2_callout_enumerate_block cb;
@@ -294,6 +382,7 @@ cc = (PCRE2_SPTR)((uint8_t *)re + re->code_start);
 while (TRUE)
   {
   int rc;
+  if (check_dfa && (rc = dfa_compatibility(cc)) != 0) return rc;
   switch (*cc)
     {
     case OP_END:
@@ -402,8 +491,11 @@ while (TRUE)
     cb.callout_string_offset = 0;
     cb.callout_string_length = 0;
     cb.callout_string = NULL;
-    rc = callback(&cb, callout_data);
-    if (rc != 0) return rc;
+    if (!check_dfa)
+      {
+      rc = callback(&cb, callout_data);
+      if (rc != 0) return rc;
+      }
     cc += PRIV(OP_lengths)[*cc];
     break;
 
@@ -415,8 +507,11 @@ while (TRUE)
     cb.callout_string_length =
       GET(cc, 1 + 2*LINK_SIZE) - (1 + 4*LINK_SIZE) - 2;
     cb.callout_string = cc + (1 + 4*LINK_SIZE) + 1;
-    rc = callback(&cb, callout_data);
-    if (rc != 0) return rc;
+    if (!check_dfa)
+      {
+      rc = callback(&cb, callout_data);
+      if (rc != 0) return rc;
+      }
     cc += GET(cc, 1 + 2*LINK_SIZE);
     break;
 
@@ -425,6 +520,13 @@ while (TRUE)
     break;
     }
   }
+}
+
+PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
+pcre2_callout_enumerate(const pcre2_code *code,
+  int (*callback)(pcre2_callout_enumerate_block *, void *), void *callout_data)
+{
+return enumerate_pattern(code, callback, callout_data, FALSE);
 }
 
 /* End of pcre2_pattern_info.c */

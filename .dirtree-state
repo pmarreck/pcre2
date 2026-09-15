@@ -1,0 +1,12 @@
+# Dirtree: Stateful directory trees in the CLI for humans and LLMs. https://github.com/pmarreck/dirtree
+ver=1.2
+annotate=[
+	DFA_COMPATIBILITY.md = Public compatibility-query contract and validation evidence
+	INTENT.md = Fork purpose and supported validation scope
+	PLAN.md = DFA compatibility work and downstream integration status
+	build = Optimized Nix package build entry point
+	flake.lock = Exact Nix build dependency revisions
+	flake.nix = Pinned static/shared CMake builds and upstream test checks
+	test = Full static and shared test entry point
+	tests/dfa_compatibility.c = C API classifier and DFA execution regressions for all code-unit widths
+]
