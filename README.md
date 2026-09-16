@@ -5,6 +5,12 @@
 
 ## Overview
 
+[![Mechatron Prime CI](https://img.shields.io/endpoint?url=https%3A%2F%2Fthelio-nixos.tail66c90.ts.net%2Fbadges%2Fpcre2.json&style=for-the-badge)](https://thelio-nixos.tail66c90.ts.net/mechatron-prime/)
+
+This fork includes a [compiled-pattern DFA compatibility query](DFA_COMPATIBILITY.md)
+and a Zig package build. Run `./test` for static/shared upstream and preflight
+tests, or `./build` for an optimized Nix build.
+
 The PCRE2 library is a set of C functions that implement **regular expression
 pattern matching**.
 
