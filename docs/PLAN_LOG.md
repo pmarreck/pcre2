@@ -12,3 +12,4 @@ Completed PLAN.md items retired by plan-retire, oldest retirement first.
 ## Retired 2026-09-24
 
 - [x] [Capture history and fixed-length repeat exploration] Create isolated checkout from Peter's Zig-enabled fork f10b7bef; preserve original checkout and imported UTF-8 handoff. (done 2026-09-23 22:13 EDT; baseline f10b7bef)
+- [x] [Capture history and fixed-length repeat exploration] Run unchanged Linux x86_64 Nix interpreter/upstream baseline: all 6 CTest tests pass, including 8/16/32-bit compatibility checks; no shared-library/JIT/macOS claim. (done 2026-09-23 22:13 EDT; baseline f10b7bef)
