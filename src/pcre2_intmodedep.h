@@ -1011,8 +1011,16 @@ typedef struct heapframe {
       PCRE2_SPTR saved_end_subject;
       PCRE2_SPTR saved_eptr;
       PCRE2_SIZE true_end_extra;
+      PCRE2_SIZE history_at_success; // Fork extension, see op_assert
       uint32_t saved_moptions;
     } op_assert_scs;
+
+    /* Fork extension: history count when a positive assertion last completed
+    normally, or PCRE2_UNSET. An ACCEPT arriving later from outside the assertion
+    re-runs the tail after it, so the tail's first-run events must be dropped. */
+    struct {
+      PCRE2_SIZE history_at_success;
+    } op_assert;
 
     struct {
       PCRE2_SPTR start_branch;

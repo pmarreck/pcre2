@@ -6555,13 +6555,16 @@ NEW_FRAME:
       for (;;)
       {
         group_frame_type = GF_NOCAPTURE;
+        F->fields.op_assert.history_at_success = PCRE2_UNSET;
         RMATCH(Fecode + PRIV(OP_lengths)[*Fecode], RM3);
         if (rrc == MATCH_ACCEPT)
         {
           memcpy(Fovector, (char *)assert_accept_frame + offsetof(heapframe, ovector),
                  assert_accept_frame->offset_top * sizeof(PCRE2_SIZE));
           Foffset_top = assert_accept_frame->offset_top;
-          Fhistory_top = assert_accept_frame->history_top;
+          Fhistory_top = (F->fields.op_assert.history_at_success != PCRE2_UNSET)
+                             ? F->fields.op_assert.history_at_success
+                             : assert_accept_frame->history_top;
           Fmark = assert_accept_frame->mark;
           break;
         }
@@ -6709,13 +6712,16 @@ NEW_FRAME:
       for (;;)
       {
         group_frame_type = GF_NOCAPTURE;
+        F->fields.op_assert_scs.history_at_success = PCRE2_UNSET;
         RMATCH(Fecode + 1 + LINK_SIZE + length, RM38);
         if (rrc == MATCH_ACCEPT)
         {
           memcpy(Fovector, (char *)assert_accept_frame + offsetof(heapframe, ovector),
                  assert_accept_frame->offset_top * sizeof(PCRE2_SIZE));
           Foffset_top = assert_accept_frame->offset_top;
-          Fhistory_top = assert_accept_frame->history_top;
+          Fhistory_top = (F->fields.op_assert_scs.history_at_success != PCRE2_UNSET)
+                             ? F->fields.op_assert_scs.history_at_success
+                             : assert_accept_frame->history_top;
           Fmark = assert_accept_frame->mark;
           mb->end_subject = Lsaved_end_subject;
           mb->true_end_subject = mb->end_subject + Ltrue_end_extra;
@@ -7229,6 +7235,7 @@ NEW_FRAME:
         if (Feptr > mb->last_used_ptr)
           mb->last_used_ptr = Feptr;
         Feptr = P->eptr;
+        P->fields.op_assert.history_at_success = Fhistory_top;
         break;
 
         /* Atomic positive assertions are like OP_ONCE, except that in addition
@@ -7243,6 +7250,7 @@ NEW_FRAME:
       case OP_ASSERT:
         if (Feptr > mb->last_used_ptr)
           mb->last_used_ptr = Feptr;
+        P->fields.op_assert.history_at_success = Fhistory_top;
         Feptr = P->eptr;
         PCRE2_FALLTHROUGH /* Fall through */
 
@@ -7284,6 +7292,7 @@ NEW_FRAME:
         mb->end_subject = P->fields.op_assert_scs.saved_end_subject;
         mb->true_end_subject = mb->end_subject + P->fields.op_assert_scs.true_end_extra;
         Feptr = P->fields.op_assert_scs.saved_eptr;
+        P->fields.op_assert_scs.history_at_success = Fhistory_top;
 
         RMATCH(Fecode + 1 + LINK_SIZE, RM39);
 
@@ -7999,7 +8008,11 @@ pcre2_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2
   at compile time for the JIT code to be usable. */
 
 #ifdef SUPPORT_JIT
-  if (re->executable_jit != NULL && (options & ~PUBLIC_JIT_MATCH_OPTIONS) == 0 &&
+  /* Fork extension: JIT code compiled from a (*CAPTURE_HISTORY) pattern records history. */
+
+  if (re->executable_jit != NULL &&
+      (options & ~(PUBLIC_JIT_MATCH_OPTIONS |
+                   (((re->flags & PCRE2_CAPHIST_SET) != 0) ? PCRE2_CAPTURE_HISTORY : 0))) == 0 &&
       PRIV(jit_check_exec)(re->executable_jit, options))
   {
     /* Prepare for JIT matching. Check a UTF string for validity unless no check

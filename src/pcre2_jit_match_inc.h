@@ -129,7 +129,16 @@ pcre2_jit_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length,
   if (functions == NULL || functions->executable_funcs[index] == NULL)
     return match_data->rc = PCRE2_ERROR_JIT_BADOPTION;
 
-  if ((options & PCRE2_CAPTURE_HISTORY) != 0 || (re->flags & PCRE2_CAPHIST_SET) != 0)
+  /* Fork extension: JIT code records history only for patterns compiled with
+  (*CAPTURE_HISTORY); the option alone falls back to the interpreter. History is
+  defined only for complete matches. */
+  if ((re->flags & PCRE2_CAPHIST_SET) != 0)
+  {
+    if (index != 0)
+      return match_data->rc = PCRE2_ERROR_JIT_BADOPTION;
+    options |= PCRE2_CAPTURE_HISTORY;
+  }
+  else if ((options & PCRE2_CAPTURE_HISTORY) != 0)
     return match_data->rc = PCRE2_ERROR_JIT_BADOPTION;
 
   /* If the match data block was previously used with PCRE2_COPY_MATCHED_SUBJECT,
@@ -149,6 +158,8 @@ free the memory that was obtained. */
   arguments.startchar_ptr = subject;
   arguments.mark_ptr = NULL;
   arguments.options = options;
+  arguments.history_end = subject;
+  arguments.history_top = 0;
 
   if (mcontext != NULL)
   {
@@ -157,6 +168,8 @@ free the memory that was obtained. */
     arguments.offset_limit = mcontext->offset_limit;
     arguments.limit_match =
         (mcontext->match_limit < re->limit_match) ? mcontext->match_limit : re->limit_match;
+    arguments.heap_limit =
+        (mcontext->heap_limit < re->limit_heap) ? mcontext->heap_limit : re->limit_heap;
     if (mcontext->jit_callback != NULL)
       jit_stack = mcontext->jit_callback(mcontext->jit_callback_data);
     else
@@ -168,6 +181,7 @@ free the memory that was obtained. */
     arguments.callout_data = NULL;
     arguments.offset_limit = PCRE2_UNSET;
     arguments.limit_match = (MATCH_LIMIT < re->limit_match) ? MATCH_LIMIT : re->limit_match;
+    arguments.heap_limit = (HEAP_LIMIT < re->limit_heap) ? HEAP_LIMIT : re->limit_heap;
     jit_stack = NULL;
   }
 
@@ -197,6 +211,8 @@ free the memory that was obtained. */
   match_data->subject_length = length;
   match_data->start_offset = start_offset;
   match_data->rc = rc;
+  if (rc >= 0 && (options & PCRE2_CAPTURE_HISTORY) != 0)
+    match_data->history_count = arguments.history_top;
   match_data->startchar = arguments.startchar_ptr - subject;
   match_data->leftchar = 0;
   match_data->rightchar = 0;

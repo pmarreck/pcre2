@@ -17,10 +17,12 @@ annotate=[
 	experiments/dna_repeats/src/normalize.zig = Strict corpus cleanup: drop ASCII whitespace and '-', uppercase, reject any other byte with its offset
 	flake.lock = Exact Nix build dependency revisions
 	flake.nix = Pinned static/shared CMake builds and upstream test checks
+	fuzz = Deep interpreter-vs-JIT capture-history differential at all widths: ./fuzz [cases] [seed]
 	src/zig/capture_history.zig = Zig module: CaptureEvent extern struct, width-suffixed Api.events borrowed slice, group iterator
 	src/zig/capture_history_test.zig = Zig tests: C layout match, borrowed pointer identity, stale-history clearing, group iteration
 	test = Full static and shared test entry point
 	tests/benchmark/capture_history_bench.c = Fixed pcre2_match workload comparing cost with capture history off vs on (hyperfine input)
 	tests/capture_history.c = C tests for committed capture-close history: rollback, assertions, recursion, lifecycle, allocator; all widths
+	tests/capture_history_jit_diff.c = Seeded random-pattern differential: interpreter vs JIT rc, ovector and capture history
 	tests/dfa_compatibility.c = C API classifier and DFA execution regressions for all code-unit widths
 ]

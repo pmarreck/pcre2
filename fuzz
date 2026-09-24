@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Deep interpreter-vs-JIT capture-history differential. Usage: ./fuzz [cases] [seed]
+set -u
+cd "$(dirname "$0")" || exit 1
+cases=${1:-200000}
+seed=${2:-0x9e3779b97f4a7c15}
+build="${XDG_CACHE_HOME:-$HOME/.cache}/pcre2_capture_history/fuzz-build"
+nix develop -c bash -c "cmake -S . -B '$build' -G Ninja -DCMAKE_BUILD_TYPE=Release -DPCRE2_BUILD_PCRE2_16=ON -DPCRE2_BUILD_PCRE2_32=ON -DPCRE2_SUPPORT_JIT=ON >/dev/null && ninja -C '$build' capture_history_jit_diff_8 capture_history_jit_diff_16 capture_history_jit_diff_32 >/dev/null" || exit 1
+status=0
+for width in 8 16 32; do
+	echo "width $width: $cases patterns, seed $seed" >&2
+	CAPTURE_HISTORY_DIFF_CASES=$cases CAPTURE_HISTORY_DIFF_SEED=$seed "$build/capture_history_jit_diff_$width" || status=1
+done
+exit $status

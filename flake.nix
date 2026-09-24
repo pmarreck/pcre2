@@ -36,6 +36,28 @@
 				shared = (package system true).overrideAttrs (old: {
 					cmakeFlags = old.cmakeFlags ++ [ "-DBUILD_STATIC_LIBS=OFF" "-DBUILD_SHARED_LIBS=ON" ];
 				});
+				# JIT-enabled build: upstream JIT tests plus capture-history JIT tests and the
+				# interpreter-vs-JIT differential. The flake source omits the sljit submodule,
+				# so it is pinned here at the revision upstream records in deps/sljit.
+				jit =
+					let
+						pkgs = nixpkgs.legacyPackages.${system};
+						sljit = pkgs.fetchFromGitHub {
+							owner = "zherczeg";
+							repo = "sljit";
+							rev = "3908d4c1d46764b7f86e172411e28cec3d0d601c";
+							hash = "sha256-83os96qEIYSruwFXsGf2UjPxNdpbcXbR8XKashj/93c=";
+						};
+					in (package system true).overrideAttrs (old: {
+						pname = "pcre2-jit-check";
+						postUnpack = (old.postUnpack or "") + ''
+							mkdir -p "$sourceRoot/deps"
+							rmdir "$sourceRoot/deps/sljit" 2>/dev/null || true
+							cp -r ${sljit} "$sourceRoot/deps/sljit"
+							chmod -R u+w "$sourceRoot/deps/sljit"
+						'';
+						cmakeFlags = builtins.filter (f: f != "-DPCRE2_SUPPORT_JIT=OFF") old.cmakeFlags ++ [ "-DPCRE2_SUPPORT_JIT=ON" ];
+					});
 				# Zig build graph and capture-history binding tests at every code-unit width.
 				zig =
 					let pkgs = nixpkgs.legacyPackages.${system};

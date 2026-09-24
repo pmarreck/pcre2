@@ -59,21 +59,40 @@ reports group 1 as `[2,3)`. `pcre2_capture_event` has the same layout for the
   is only checked when it has to grow. Matching without the option
   allocates nothing for history.
 
-## Unsupported modes
+## Execution modes
 
-| Call | Behavior with `PCRE2_CAPTURE_HISTORY` |
+| Call | Behavior with history requested |
 | --- | --- |
-| `pcre2_match()` + `PCRE2_PARTIAL_SOFT` or `_HARD` | `PCRE2_ERROR_BADOPTION` |
+| `pcre2_match()`, interpreter | Records history |
+| `pcre2_match()` on a JIT-compiled `(*CAPTURE_HISTORY)` pattern | Runs the JIT, which records history |
+| `pcre2_match()` on a JIT-compiled pattern, option only | Runs the interpreter (the JIT code was compiled without history) |
+| `pcre2_jit_match()` on a `(*CAPTURE_HISTORY)` pattern | Records history |
+| `pcre2_jit_match()` with the option on a pattern without the verb | `PCRE2_ERROR_JIT_BADOPTION` |
+| `pcre2_jit_compile()` of a history pattern containing `(?n(list))` / `(?R(list))` | `PCRE2_ERROR_JIT_UNSUPPORTED`; the interpreter runs it |
+| Partial matching (either engine) | `PCRE2_ERROR_BADOPTION` / `PCRE2_ERROR_JIT_BADOPTION` |
 | `pcre2_dfa_match()` | `PCRE2_ERROR_BADOPTION` |
-| `pcre2_match()` on a JIT-compiled pattern | Runs the interpreter (the option is outside the JIT option mask) |
-| `pcre2_jit_match()` | `PCRE2_ERROR_JIT_BADOPTION` |
 
-The JIT rows are tested only when the library is built with JIT (a local
-`-DPCRE2_SUPPORT_JIT=ON` CMake build passed at all widths on 2026-09-24,
-x86_64 Linux). The Nix checks build without JIT and skip them. The fallback
-has two guards: the option is outside the JIT option mask, and
-`pcre2_jit_match()` returns `PCRE2_ERROR_JIT_BADOPTION`, which
-`pcre2_match()` already treats as "use the interpreter".
+History is known at JIT-compile time only through the verb, so the verb is the
+way to get JIT speed with history. The JIT keeps the count of events on the
+current path in its existing `capture_last` slot, which it already saves and
+restores at every capture close, bracket backtrack and subroutine call; a
+helper appends each event. Callouts still receive the correct `capture_last`
+(the last event's group). Capture-bracket optimizations are off for these
+patterns, as they are for patterns with callouts.
+
+Evidence: every hand-written case runs through both engines, and
+`tests/capture_history_jit_diff.c` compares rc, ovector and full history from
+both engines on seeded random patterns (captures, alternation, all quantifier
+kinds, atomic groups, lookarounds, backreferences, `(*ACCEPT)`, subroutine
+calls). The test suite runs 3,000 patterns per width; `./fuzz [cases] [seed]`
+runs more. Cases where the engines fail differently on limits (for example
+recursion-loop versus JIT stack) are counted separately, not compared.
+
+The differential found an interpreter bug that the hand-written cases missed:
+an `(*ACCEPT)` in an outer assertion, after a nested positive assertion had
+completed, re-runs the tail after the nested assertion (upstream control flow),
+and history recorded that tail twice. The nested assertion now remembers the
+event count at which it completed, and the re-run starts from there.
 
 ## Implementation
 

@@ -7,14 +7,14 @@
 - [ ] Peter to decide whether to add an explicit per-match event maximum (see reply 2026-09-24).
 - [x] Record returned captures at subroutine/recursion return (one event per set returned group); error -77 removed. (done 2026-09-24 16:55 EDT)
 - [x] Build the chain_packing finder and dna-repeats CLI; exhaustive differential vs oracle; corpus: 399 families, L 8..20, 0.83 s with LNRS bound. (done 2026-09-24 17:02 EDT)
-- [ ] Implement capture history in the JIT, matching interpreter event histories exactly. (Peter, 2026-09-24)
+- [x] JIT capture history for (*CAPTURE_HISTORY) patterns; interpreter-vs-JIT differential in CI found and fixed an interpreter duplicate-ACCEPT bug. (done 2026-09-24 17:45 EDT)
+- [ ] JIT history for returned-capture recursion (currently JIT_UNSUPPORTED, interpreter runs it).
+- [ ] Consider a PCRE2_JIT_CAPTURE_HISTORY jit-compile option so option-only history can use the JIT.
 - [ ] Turn tests/benchmark/capture_history_bench.c into ./bm with an ndjson log and baseline-vs-current comparison.
 - [x] Peter: history bytes count against heap_limit; consider a maximum. (done 2026-09-24 16:37 EDT)
-- [ ] Add a JIT-enabled Nix check so JIT history tests run in CI (needs sljit submodule in the flake source).
+- [x] Add JIT-enabled Nix check (sljit pinned via fetchFromGitHub) to ./test and Mechatron targets. (done 2026-09-24 17:44 EDT)
 - [x] Peter: record returned-capture recursion; fork numbers documented as provisional pending upstream. (done 2026-09-24 16:37 EDT)
-- [x] Add (*CAPTURE_HISTORY) pattern-start verb; DFA, partial and direct JIT refuse it; tested in JIT and non-JIT builds. (done 2026-09-24 14:27 EDT)
 - [ ] Add a mechanical check that the fork option bit and internal flag bit do not collide with upstream before rebase/release.
-- [x] Build exhaustive small counterexamples and oracle for the overlap ambiguity; chain model matches PCRE2 history by differential test. (done 2026-09-24 14:24 EDT; context: docs/capture_history/OVERLAP_SEMANTICS.md)
 - [x] Peter chose family rule A, chain_packing. (done 2026-09-24 16:37 EDT; context: docs/capture_history/OVERLAP_SEMANTICS.md)
 - [x] Implement strict normalization, tested over all 256 byte values; real corpus gives 2,900 bases identical to an independent tr pipeline. (done 2026-09-24 14:28 EDT)
 - [ ] Add maximality per family and optional Pareto labels to the finder output.

@@ -194,6 +194,10 @@ typedef struct jit_arguments {
   sljit_u32 limit_match;
   sljit_u32 oveccount;
   sljit_u32 options;
+  /* Fork extension: capture history. */
+  PCRE2_SPTR history_end;
+  sljit_uw history_top;
+  sljit_u32 heap_limit;
 } jit_arguments;
 
 #define JIT_NUMBER_OF_COMPILE_MODES 3
@@ -518,6 +522,8 @@ typedef struct compiler_common {
   /* Same as reset_match, but resets the STR_PTR as well. */
   jump_list *restart_match;
   BOOL unset_backref;
+  /* Fork extension: record capture history ((*CAPTURE_HISTORY) pattern). */
+  BOOL capture_history;
   BOOL alt_circumflex;
 #ifdef SUPPORT_UNICODE
   BOOL utf;
@@ -1184,9 +1190,11 @@ check_opcode_types(compiler_common *common, PCRE2_SPTR cc, PCRE2_SPTR ccend)
   PCRE2_SPTR slot;
   PCRE2_SPTR assert_back_end = cc - 1;
   PCRE2_SPTR assert_na_end = cc - 1;
-  sljit_s32 locals_size = 2 * SSIZE_OF(sw);
+  /* Capture history keeps its event count in the capture_last slot and needs
+  four scratch words to preserve registers around its helper call. */
+  sljit_s32 locals_size = common->capture_history ? 5 * SSIZE_OF(sw) : 2 * SSIZE_OF(sw);
   BOOL set_recursive_head = FALSE;
-  BOOL set_capture_last = FALSE;
+  BOOL set_capture_last = common->capture_history && common->capture_last_ptr == 0;
   BOOL set_mark = FALSE;
 
   /* Calculate important variables (like stack size) and checks whether all opcodes are supported. */
@@ -1281,6 +1289,9 @@ check_opcode_types(compiler_common *common, PCRE2_SPTR cc, PCRE2_SPTR ccend)
       /* Set its value only once. */
       set_recursive_head = TRUE;
       cc += 1 + LINK_SIZE;
+      /* Fork extension: returned captures are not yet recorded by JIT history. */
+      if (common->capture_history && *cc == OP_CREF)
+        return FALSE;
       while (*cc == OP_CREF)
       {
         clear_optimized_cbracket(common, GET2(cc, 1));
@@ -3879,6 +3890,14 @@ copy_ovector(compiler_common *common, int topbracket)
   /* At this point we can freely use all registers. */
   OP1(SLJIT_MOV, SLJIT_S2, 0, SLJIT_MEM1(SLJIT_SP), OVECTOR(1));
   OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(1), STR_PTR, 0);
+
+  /* Fork extension: publish the number of history events on the successful path. */
+  if (common->capture_history)
+  {
+    OP1(SLJIT_MOV, SLJIT_R0, 0, ARGUMENTS, 0);
+    OP1(SLJIT_MOV, SLJIT_R2, 0, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr);
+    OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_R0), SLJIT_OFFSETOF(jit_arguments, history_top), SLJIT_R2, 0);
+  }
 
   if (HAS_VIRTUAL_REGISTERS)
   {
@@ -9356,6 +9375,89 @@ compile_recurse_matchingpath(compiler_common *common, PCRE2_SPTR cc, backtrack_c
   return end;
 }
 
+/* Fork extension: append one capture-close event at index `top` (the count of
+events on the current path, kept in the capture_last slot and restored on
+backtracking exactly like capture_last). Returns the new count, or a negative
+error code that aborts the match. History storage is limited by the match heap
+limit, as in the interpreter; the JIT itself uses no heap frames. */
+
+static sljit_sw SLJIT_FUNC
+do_capture_history_jit(struct jit_arguments *arguments, sljit_sw top, sljit_sw group,
+                       PCRE2_SPTR start)
+{
+  pcre2_match_data *match_data = arguments->match_data;
+  PCRE2_SIZE count = (PCRE2_SIZE)top;
+  pcre2_capture_event *event;
+
+  if (count >= match_data->history_capacity)
+  {
+    PCRE2_SIZE old_capacity = match_data->history_capacity;
+    PCRE2_SIZE new_capacity = (old_capacity == 0) ? 16 : 2 * old_capacity;
+    pcre2_capture_event *new_history;
+    if (new_capacity > PCRE2_SIZE_MAX / sizeof(pcre2_capture_event))
+      return PCRE2_ERROR_NOMEMORY;
+    if (arguments->heap_limit <= PCRE2_SIZE_MAX / 1024)
+    {
+      PCRE2_SIZE avail = (PCRE2_SIZE)arguments->heap_limit * 1024 / sizeof(pcre2_capture_event);
+      if (avail <= count)
+        return PCRE2_ERROR_HEAPLIMIT;
+      if (new_capacity > avail)
+        new_capacity = avail;
+    }
+    new_history = match_data->memctl.malloc(new_capacity * sizeof(pcre2_capture_event),
+                                            match_data->memctl.memory_data);
+    if (new_history == NULL)
+      return PCRE2_ERROR_NOMEMORY;
+    if (old_capacity != 0)
+    {
+      memcpy(new_history, match_data->history, old_capacity * sizeof(pcre2_capture_event));
+      match_data->memctl.free(match_data->history, match_data->memctl.memory_data);
+    }
+    match_data->history = new_history;
+    match_data->history_capacity = new_capacity;
+  }
+
+  event = match_data->history + count;
+  event->group = (uint32_t)group;
+  event->start = (PCRE2_SIZE)(start - arguments->begin);
+  event->end = (PCRE2_SIZE)(arguments->history_end - arguments->begin);
+  return (sljit_sw)(count + 1);
+}
+
+/* Emit a call recording group `number` closing from the start pointer in
+`start`/`startw` to STR_PTR; the new event count replaces the capture_last slot.
+Scratch registers are preserved in LOCAL0..LOCAL3 because callers keep live
+values in them. */
+
+static void
+emit_capture_history(compiler_common *common, sljit_s32 number, sljit_s32 start, sljit_sw startw)
+{
+  DEFINE_COMPILER;
+
+  SLJIT_ASSERT(common->capture_history && common->capture_last_ptr != 0);
+  OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), LOCAL0, STR_PTR, 0);
+  OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), LOCAL1, TMP1, 0);
+  OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), LOCAL2, TMP2, 0);
+  OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), LOCAL3, TMP3, 0);
+  OP1(SLJIT_MOV, SLJIT_R3, 0, start, startw);
+  OP1(SLJIT_MOV, SLJIT_R0, 0, ARGUMENTS, 0);
+  OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_R0), SLJIT_OFFSETOF(jit_arguments, history_end), STR_PTR, 0);
+  OP1(SLJIT_MOV, SLJIT_R1, 0, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr);
+  OP1(SLJIT_MOV, SLJIT_R2, 0, SLJIT_IMM, number);
+  sljit_emit_icall(compiler, SLJIT_CALL, SLJIT_ARGS4(W, W, W, W, W), SLJIT_IMM,
+                   SLJIT_FUNC_ADDR(do_capture_history_jit));
+  OP2U(SLJIT_SUB | SLJIT_SET_SIG_LESS, SLJIT_RETURN_REG, 0, SLJIT_IMM, 0);
+  if (common->abort_label == NULL)
+    add_jump(compiler, &common->abort, JUMP(SLJIT_SIG_LESS));
+  else
+    JUMPTO(SLJIT_SIG_LESS, common->abort_label);
+  OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr, SLJIT_RETURN_REG, 0);
+  OP1(SLJIT_MOV, STR_PTR, 0, SLJIT_MEM1(SLJIT_SP), LOCAL0);
+  OP1(SLJIT_MOV, TMP1, 0, SLJIT_MEM1(SLJIT_SP), LOCAL1);
+  OP1(SLJIT_MOV, TMP2, 0, SLJIT_MEM1(SLJIT_SP), LOCAL2);
+  OP1(SLJIT_MOV, TMP3, 0, SLJIT_MEM1(SLJIT_SP), LOCAL3);
+}
+
 static sljit_s32 SLJIT_FUNC
 do_callout_jit(struct jit_arguments *arguments, pcre2_callout_block *callout_block,
                PCRE2_SPTR *jit_ovector)
@@ -9366,6 +9468,14 @@ do_callout_jit(struct jit_arguments *arguments, pcre2_callout_block *callout_blo
 
   if (arguments->callout == NULL)
     return 0;
+
+  /* Fork extension: with capture history the slot holds the event count; the
+  most recent capture on the path is the last event's group. */
+  if ((arguments->options & PCRE2_CAPTURE_HISTORY) != 0)
+  {
+    sljit_u32 top = callout_block->capture_last;
+    callout_block->capture_last = (top == 0) ? 0 : arguments->match_data->history[top - 1].group;
+  }
 
   SLJIT_COMPILE_ASSERT(sizeof(PCRE2_SIZE) <= sizeof(sljit_sw),
                        pcre2_size_must_be_lower_than_sljit_sw_size);
@@ -10222,7 +10332,8 @@ match_capture_common(compiler_common *common, int stacksize, int offset, int pri
   if (common->capture_last_ptr != 0)
   {
     OP1(SLJIT_MOV, TMP1, 0, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr);
-    OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr, SLJIT_IMM, offset >> 1);
+    if (!common->capture_history)
+      OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr, SLJIT_IMM, offset >> 1);
     OP1(SLJIT_MOV, SLJIT_MEM1(STACK_TOP), STACK(stacksize), TMP1, 0);
     stacksize++;
   }
@@ -10238,6 +10349,12 @@ match_capture_common(compiler_common *common, int stacksize, int offset, int pri
     OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset), TMP1, 0);
     stacksize += 2;
   }
+
+  /* Events recorded inside a subroutine call are rolled back when it returns,
+  because the call restores the capture_last slot; recording them keeps the
+  callout capture_last consistent with the interpreter inside calls. */
+  if (common->capture_history)
+    emit_capture_history(common, offset >> 1, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset));
 
   return stacksize;
 }
@@ -11267,9 +11384,11 @@ compile_bracketpos_matchingpath(compiler_common *common, PCRE2_SPTR cc, backtrac
         OP1(SLJIT_MOV, TMP1, 0, SLJIT_MEM1(SLJIT_SP), cbraprivptr);
         OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset + 1), STR_PTR, 0);
         OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), cbraprivptr, STR_PTR, 0);
-        if (common->capture_last_ptr != 0)
+        if (common->capture_last_ptr != 0 && !common->capture_history)
           OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr, SLJIT_IMM, offset >> 1);
         OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset), TMP1, 0);
+        if (common->capture_history)
+          emit_capture_history(common, offset >> 1, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset));
       }
       else
       {
@@ -11298,9 +11417,11 @@ compile_bracketpos_matchingpath(compiler_common *common, PCRE2_SPTR cc, backtrac
         OP1(SLJIT_MOV, TMP1, 0, SLJIT_MEM1(SLJIT_SP), cbraprivptr);
         OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset + 1), STR_PTR, 0);
         OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), cbraprivptr, STR_PTR, 0);
-        if (common->capture_last_ptr != 0)
+        if (common->capture_last_ptr != 0 && !common->capture_history)
           OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), common->capture_last_ptr, SLJIT_IMM, offset >> 1);
         OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset), TMP1, 0);
+        if (common->capture_history)
+          emit_capture_history(common, offset >> 1, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset));
       }
       else
       {
@@ -12365,6 +12486,8 @@ compile_close_matchingpath(compiler_common *common, PCRE2_SPTR cc)
   OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset + 1), STR_PTR, 0);
   if (!optimized_cbracket)
     OP1(SLJIT_MOV, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset), TMP1, 0);
+  if (common->capture_history)
+    emit_capture_history(common, offset >> 1, SLJIT_MEM1(SLJIT_SP), OVECTOR(offset));
   return cc + 1 + IMM2_SIZE;
 }
 
@@ -14581,6 +14704,7 @@ jit_compile(pcre2_code *code, sljit_u32 mode)
   common->capture_last_ptr = common->ovector_start;
   common->ovector_start += sizeof(sljit_sw);
 #endif
+  common->capture_history = (re->flags & PCRE2_CAPHIST_SET) != 0;
   if (!check_opcode_types(common, common->start, ccend))
   {
     SLJIT_FREE(common->private_data_ptrs, allocator_data);
