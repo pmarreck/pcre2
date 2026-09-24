@@ -19,7 +19,9 @@ A Zig consumer will explore fixed-length, bounded-gap maximal repeat families
 over A/C/G/T strings, including shorter families with more occurrences. Use
 strict input normalization, a simple independent enumeration oracle, and
 measured scaling. Speed improvements are hypotheses, not acceptance criteria
-already achieved. The actual DNA corpus is not yet supplied.
+already achieved. Peter supplied the local DNA corpus on September 24 at
+`$HOME/Documents/dna_sample.txt`; preserve the original and do not publish it
+without permission.
 
 The original handoff is preserved verbatim in
 [docs/capture_history/pcre2-zig-maximal-dna-repeats-capture-history-handoff.md](docs/capture_history/pcre2-zig-maximal-dna-repeats-capture-history-handoff.md).

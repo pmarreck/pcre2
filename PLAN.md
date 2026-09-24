@@ -11,7 +11,7 @@
 - [ ] Expose Zig borrowed offset events through the existing fork build, with ABI/lifetime checks and no subject copies.
 - [ ] Resolve overlapping-position aggregation ambiguity with exhaustive small counterexamples before implementing the DNA family oracle or optimized search. (context: docs/capture_history/REVIEW.md)
 - [ ] Implement strict normalization, fixed-length regex finder and separate brute-force Zig oracle; retain all maximal families and optional Pareto labels.
-- [ ] Obtain the real DNA corpus; never treat the handoff placeholder as data or claim real-corpus benchmark results without it.
+- [x] Receive actual corpus at $HOME/Documents/dna_sample.txt: 2,901 bytes, 2,900 ACGT bases after ASCII-whitespace/hyphen normalization. (done 2026-09-24 13:27 EDT; provenance: docs/capture_history/REVIEW.md)
 - [ ] Benchmark disabled/enabled capture history and both gap patterns separately for compile/match/aggregation/memory at N,2N,4N,8N; defer JIT until semantics are proven.
 
 ## Inherited DFA-query work

@@ -34,8 +34,13 @@ Use `nix log` on that exact derivation for evidence.
 
 ## Review before coding
 
-1. The actual DNA corpus remains `INSERT_OVERLONG_DNA_STRAND_HERE`. Synthetic
-   cases can establish correctness now; real-data performance must wait.
+1. The imported handoff retains `INSERT_OVERLONG_DNA_STRAND_HERE` verbatim.
+   Peter supplied `$HOME/Documents/dna_sample.txt` on September 24: 2,901 bytes,
+   2,900 bases after removing ASCII whitespace/hyphens and uppercasing, with no
+   other characters. SHA-256 of the original bytes:
+   `b6c469693af361128569e065604f26a53ebd0f75f22678377cbfbad763b22c5a`.
+   Read this file without modifying it; keep it local pending publication consent.
+   This validates input shape only, not any expected repeat counts.
 2. Non-overlapping matches and a union of all offset chains are not automatically
    compatible. Example: `AAAAAA`, L=2, D=0 produces greedy chains [0,2,4]
    and [1,3]. Their union [0,1,2,3,4] has negative gaps, contradicting the
