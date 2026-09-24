@@ -90,4 +90,25 @@ Open questions:
   allocations. Check them mechanically against upstream before any rebase or
   release.
 
-Tests: `tests/capture_history.c`, run by CTest at all three widths.
+## Zig
+
+The fork's `build.zig` exports module `pcre2_capture_history`
+(`src/zig/capture_history.zig`):
+
+```zig
+const ch = @import("pcre2_capture_history");
+const Api = ch.Api(8); // links pcre2_get_capture_event_*_8
+// pass ch.option to pcre2_match, then:
+const events = Api.events(match_data); // []const ch.CaptureEvent, borrowed
+var it = ch.groupIterator(events, hit_group);
+while (it.next()) |ev| use(ev.slice(u8, subject));
+```
+
+`Api.events` takes any pointer to match data, so it works with whichever C
+import the caller uses. The slice aliases the C array and follows its
+lifetime. `translate-c` cannot expand PCRE2's width-suffix macros, so Zig callers
+use suffixed names such as `pcre2_code_8` and `pcre2_match_8`.
+
+Tests: `tests/capture_history.c` (CTest, all widths) and
+`src/zig/capture_history_test.zig` (`zig build test`, Nix check `zig`, all
+widths).

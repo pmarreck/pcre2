@@ -36,6 +36,30 @@
 				shared = (package system true).overrideAttrs (old: {
 					cmakeFlags = old.cmakeFlags ++ [ "-DBUILD_STATIC_LIBS=OFF" "-DBUILD_SHARED_LIBS=ON" ];
 				});
+				# Zig build graph and capture-history binding tests at every code-unit width.
+				zig =
+					let pkgs = nixpkgs.legacyPackages.${system};
+					in pkgs.stdenvNoCC.mkDerivation {
+						pname = "pcre2-zig-check";
+						version = "10.48-dev";
+						src = self;
+						strictDeps = true;
+						nativeBuildInputs = [ pkgs.zig ];
+						dontConfigure = true;
+						dontInstall = true;
+						dontFixup = true;
+						buildPhase = ''
+							runHook preBuild
+							export HOME=$TMPDIR
+							export ZIG_GLOBAL_CACHE_DIR=$TMPDIR/zig-global
+							for width in 8 16 32; do
+								zig build test -Dcode-unit-width=$width --summary all --cache-dir "$TMPDIR/zig-cache" --prefix "$TMPDIR/out-$width"
+							done
+							mkdir -p $out
+							echo "zig tests passed" > $out/result
+							runHook postBuild
+						'';
+					};
 			});
 			devShells = forSystems (system:
 				let pkgs = nixpkgs.legacyPackages.${system};

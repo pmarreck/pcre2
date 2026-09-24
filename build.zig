@@ -115,6 +115,44 @@ pub fn build(b: *std.Build) !void {
     lib.installHeader(pcre2_header, "pcre2.h");
     b.installArtifact(lib);
 
+    // Fork extension: Zig view of committed capture history (borrowed slices, no copies).
+
+    const capture_history_mod = b.addModule("pcre2_capture_history", .{
+        .root_source_file = b.path("src/zig/capture_history.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const pcre2_c = b.addTranslateC(.{
+        .root_source_file = pcre2_header,
+        .target = target,
+        .optimize = optimize,
+    });
+    pcre2_c.defineCMacro("PCRE2_CODE_UNIT_WIDTH", @tagName(codeUnitWidth));
+    if (linkage == .static) pcre2_c.defineCMacro("PCRE2_STATIC", "");
+
+    const test_options = b.addOptions();
+    test_options.addOption(u8, "code_unit_width", switch (codeUnitWidth) {
+        .@"8" => 8,
+        .@"16" => 16,
+        .@"32" => 32,
+    });
+
+    const capture_history_test_mod = b.createModule(.{
+        .root_source_file = b.path("src/zig/capture_history_test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    capture_history_test_mod.addImport("pcre2_c", pcre2_c.createModule());
+    capture_history_test_mod.addImport("pcre2_capture_history", capture_history_mod);
+    capture_history_test_mod.addImport("pcre2_test_options", test_options.createModule());
+    capture_history_test_mod.linkLibrary(lib);
+
+    const capture_history_tests = b.addTest(.{ .root_module = capture_history_test_mod });
+    const test_step = b.step("test", "Run Zig capture-history binding tests");
+    test_step.dependOn(&b.addRunArtifact(capture_history_tests).step);
+
     // pcre2test
 
     const pcre2test_mod = b.createModule(.{

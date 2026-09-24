@@ -1,3 +1,4 @@
 packages.x86_64-linux.default
 checks.x86_64-linux.test
 checks.x86_64-linux.shared
+checks.x86_64-linux.zig
