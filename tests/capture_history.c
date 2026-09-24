@@ -284,6 +284,56 @@ static void check_verb_modes(void)
 	pcre2_code_free(code);
 }
 
+static int match_with_heap_limit(pcre2_code *code, PCRE2_UCHAR *subject, unsigned n, uint32_t opts, uint32_t kib)
+{
+	pcre2_match_data *md = pcre2_match_data_create_from_pattern(code, NULL);
+	pcre2_match_context *mc = pcre2_match_context_create(NULL);
+	pcre2_set_heap_limit(mc, kib);
+	int rc = pcre2_match(code, subject, n, 0, opts, md, mc);
+	pcre2_match_context_free(mc);
+	pcre2_match_data_free(md);
+	return rc;
+}
+
+/* History memory counts against the heap limit. The threshold is found by search,
+so the test does not depend on frame sizes, which differ by width and platform.
+"(a)+b" grows frames with events; "(a)++b" keeps frames flat while events grow. */
+static void check_heap_accounting_for(const char *pattern)
+{
+	enum { N = 2000 };
+	static char many[N + 2];
+	memset(many, 'a', N);
+	many[N] = 'b';
+	many[N + 1] = 0;
+	static PCRE2_UCHAR subject[N + 2];
+	unsigned n = to_code_units(subject, many);
+	pcre2_code *code = compile_ascii(pattern);
+	if (!code) { fail("heap accounting", "setup failed"); return; }
+	uint32_t kib = 1;
+	while (kib < 1u << 20 && match_with_heap_limit(code, subject, n, 0, kib) != 2) ++kib;
+	uint32_t history_kib = (uint32_t)((N * sizeof(pcre2_capture_event) + 1023) / 1024);
+	if (match_with_heap_limit(code, subject, n, 0, kib - 1) != PCRE2_ERROR_HEAPLIMIT)
+		fail("heap accounting", "search did not find the frame threshold");
+	int rc = match_with_heap_limit(code, subject, n, PCRE2_CAPTURE_HISTORY, kib);
+	if (rc != PCRE2_ERROR_HEAPLIMIT) {
+		fprintf(stderr, "FAIL heap accounting %s: history at frame-only limit %u KiB gave rc=%d\n", pattern, kib, rc);
+		++failures;
+	}
+	/* Doubling growth may round history capacity up to twice the events needed. */
+	rc = match_with_heap_limit(code, subject, n, PCRE2_CAPTURE_HISTORY, kib + 2 * history_kib + 1);
+	if (rc != 2) {
+		fprintf(stderr, "FAIL heap accounting %s: history with room for events gave rc=%d\n", pattern, rc);
+		++failures;
+	}
+	pcre2_code_free(code);
+}
+
+static void check_heap_accounting(void)
+{
+	check_heap_accounting_for("(a)+b");
+	check_heap_accounting_for("(a)++b");
+}
+
 int main(void)
 {
 	static const history_case cases[] = {
@@ -341,6 +391,7 @@ int main(void)
 	for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) run_case(&cases[i]);
 	check_lifecycle();
 	check_limits();
+	check_heap_accounting();
 	check_jit();
 	check_verb_modes();
 	{

@@ -3,15 +3,14 @@
 ## Capture history and fixed-length repeat exploration
 
 - [x] Merge upstream PCRE2 main 315201c3 (129 commits incl. 10.48 and bulk reformat), sljit 3908d4c1, nixpkgs nixos-unstable 4975466d; ./test green. (done 2026-09-24 16:50 EDT)
-- [ ] Count history memory against heap_limit and decide on an explicit event maximum, following PCRE2 precedent. (Peter, 2026-09-24)
+- [x] Count history memory against heap_limit, covering frame-driven and possessive (event-driven) growth. (done 2026-09-24 16:48 EDT)
+- [ ] Peter to decide whether to add an explicit per-match event maximum (see reply 2026-09-24).
 - [ ] Make recursion/subroutines that return captures record history instead of failing with -77. (Peter, 2026-09-24)
 - [ ] Build the fixed-length finder with the chain_packing family rule, checked against the oracle. (Peter, 2026-09-24)
 - [ ] Implement capture history in the JIT, matching interpreter event histories exactly. (Peter, 2026-09-24)
-- [x] Add heap/match/depth-limit tests with history enabled: each returns its limit error with zero events. (done 2026-09-24 14:02 EDT)
 - [x] Measure disabled/enabled history overhead once: disabled within noise, enabled about 1.14x on the bench workload. (done 2026-09-24 14:10 EDT; context: CAPTURE_HISTORY.md)
 - [ ] Turn tests/benchmark/capture_history_bench.c into ./bm with an ndjson log and baseline-vs-current comparison.
 - [x] Peter: history bytes count against heap_limit; consider a maximum. (done 2026-09-24 16:37 EDT)
-- [x] Test JIT fallback and pcre2_jit_match rejection in a local JIT-enabled build at 8/16/32. (done 2026-09-24 14:01 EDT)
 - [ ] Add a JIT-enabled Nix check so JIT history tests run in CI (needs sljit submodule in the flake source).
 - [x] Peter: record returned-capture recursion; fork numbers documented as provisional pending upstream. (done 2026-09-24 16:37 EDT)
 - [x] Add (*CAPTURE_HISTORY) pattern-start verb; DFA, partial and direct JIT refuse it; tested in JIT and non-JIT builds. (done 2026-09-24 14:27 EDT)

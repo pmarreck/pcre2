@@ -667,12 +667,13 @@ A partial match is returned only if no complete match can be found. */
 /* Fork extension: append one capture-close event for the current path. The
 event array is shared by all frames; each frame's history_top says how many
 events belong to its path, so backtracking to an older frame truncates history
-in O(1) exactly where it restores the frame's ovector. Growth doubles and uses
-the match data's allocator. */
+in O(1) exactly where it restores the frame's ovector. Growth doubles, uses the
+match data's allocator, and shares the heap limit with the backtracking frames:
+it is clamped to what the limit leaves after the frame vector. */
 
 static int
-record_capture_event(heapframe *F, pcre2_match_data *match_data, uint32_t group,
-                     PCRE2_SIZE start, PCRE2_SIZE end)
+record_capture_event(heapframe *F, pcre2_match_data *match_data, match_block *mb,
+                     uint32_t group, PCRE2_SIZE start, PCRE2_SIZE end)
 {
   pcre2_capture_event *event;
   if (F->history_top >= match_data->history_capacity)
@@ -682,6 +683,17 @@ record_capture_event(heapframe *F, pcre2_match_data *match_data, uint32_t group,
     pcre2_capture_event *new_history;
     if (new_capacity > PCRE2_SIZE_MAX / sizeof(pcre2_capture_event))
       return PCRE2_ERROR_NOMEMORY;
+    if (mb->heap_limit <= PCRE2_SIZE_MAX / 1024)
+    {
+      PCRE2_SIZE limit_bytes = (PCRE2_SIZE)mb->heap_limit * 1024;
+      PCRE2_SIZE avail = (limit_bytes > match_data->heapframes_size)
+                             ? (limit_bytes - match_data->heapframes_size) / sizeof(pcre2_capture_event)
+                             : 0;
+      if (avail <= F->history_top)
+        return PCRE2_ERROR_HEAPLIMIT;
+      if (new_capacity > avail)
+        new_capacity = avail;
+    }
     new_history = match_data->memctl.malloc(new_capacity * sizeof(pcre2_capture_event),
                                             match_data->memctl.memory_data);
     if (new_history == NULL)
@@ -706,7 +718,7 @@ record_capture_event(heapframe *F, pcre2_match_data *match_data, uint32_t group,
   {                                                                        \
     if ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0)                       \
     {                                                                      \
-      int hrc = record_capture_event(F, match_data, group, start, end);    \
+      int hrc = record_capture_event(F, match_data, mb, group, start, end); \
       if (hrc != 0)                                                        \
         return hrc;                                                        \
     }                                                                      \
@@ -843,6 +855,7 @@ MATCH_RECURSE:
     heapframe *new;
     PCRE2_SIZE newsize;
     PCRE2_SIZE usedsize = (char *)N - (char *)(match_data->heapframes);
+    PCRE2_SIZE history_bytes;
 
     if (match_data->heapframes_size >= PCRE2_SIZE_MAX / 2)
     {
@@ -855,9 +868,14 @@ MATCH_RECURSE:
       newsize = match_data->heapframes_size * 2;
     }
 
-    if (newsize / 1024 >= mb->heap_limit)
+    /* Fork extension: capture-history storage shares the heap limit. */
+    history_bytes = ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0)
+                        ? match_data->history_capacity * sizeof(pcre2_capture_event)
+                        : 0;
+
+    if ((newsize + history_bytes) / 1024 >= mb->heap_limit)
     {
-      PCRE2_SIZE old_size = match_data->heapframes_size / 1024;
+      PCRE2_SIZE old_size = (match_data->heapframes_size + history_bytes) / 1024;
       if (mb->heap_limit <= old_size)
       {
         return PCRE2_ERROR_HEAPLIMIT;
@@ -865,7 +883,7 @@ MATCH_RECURSE:
       else
       {
         PCRE2_SIZE max_delta = 1024 * (mb->heap_limit - old_size);
-        int over_bytes = match_data->heapframes_size % 1024;
+        int over_bytes = (match_data->heapframes_size + history_bytes) % 1024;
         if (over_bytes)
           max_delta -= (1024 - over_bytes);
         newsize = match_data->heapframes_size + max_delta;

@@ -52,7 +52,11 @@ reports group 1 as `[2,3)`. `pcre2_capture_event` has the same layout for the
   data is used for another match or freed. It may be NULL when the count is 0.
 - Event storage comes from the match data's allocator and is kept for reuse,
   like the backtracking frames. Allocation failure returns
-  `PCRE2_ERROR_NOMEMORY`, not a no-match. Matching without the option
+  `PCRE2_ERROR_NOMEMORY`, not a no-match. History storage shares the match
+  heap limit (`pcre2_set_heap_limit()`) with the frame vector: when either grows
+  during a history-enabled match, the sum must fit, or the match fails with
+  `PCRE2_ERROR_HEAPLIMIT`. As with frames, storage retained in reused match data
+  is only checked when it has to grow. Matching without the option
   allocates nothing for history.
 
 ## Unsupported modes
@@ -90,8 +94,6 @@ Open questions:
   `tests/benchmark/capture_history_bench.c`: disabled 963.9 ± 24.1 ms vs
   baseline 958.0 ± 19.2 ms, a difference within noise; enabled 1.093 ± 0.015 s,
   about 1.14× baseline. One workload set on one machine; not a gate yet.
-- History memory is not counted against the heap limit. Events on the path are
-  bounded by the frames that created them, but no test pins that bound.
 - The option bit (`0x00080000`), error code (-77) and internal pattern flag
   `PCRE2_CAPHIST_SET` (`0x02000000`) are provisional fork-local allocations. Check them mechanically against upstream before any rebase or
   release.
