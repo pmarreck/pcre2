@@ -14,6 +14,12 @@ if (rc >= 0) {
 }
 ```
 
+A pattern can request history itself with the start-of-pattern verb
+`(*CAPTURE_HISTORY)`, which may be combined with other start verbs such as
+`(*NO_JIT)` or `(*UTF)`. `pcre2_match()` then behaves as if the option were
+passed. Partial matching, `pcre2_dfa_match()` and `pcre2_jit_match()` refuse
+such a pattern as they refuse the option.
+
 `(a)+` against `aaa` yields `{1,0,1} {1,1,2} {1,2,3}`. The ovector still
 reports group 1 as `[2,3)`. `pcre2_capture_event` has the same layout for the
 8-, 16- and 32-bit libraries; the getters carry the usual width suffix.

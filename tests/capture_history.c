@@ -259,6 +259,31 @@ static void check_jit(void)
 	pcre2_code_free(code);
 }
 
+/* A pattern that requests history must be refused by modes that cannot honor it. */
+static void check_verb_modes(void)
+{
+	pcre2_code *code = compile_ascii("(*CAPTURE_HISTORY)(a)+b?");
+	pcre2_match_data *md = pcre2_match_data_create_from_pattern(code, NULL);
+	if (!code || !md) { fail("verb", "setup failed"); return; }
+	PCRE2_UCHAR subj[4] = { 'a', 'a', 'a', 0 };
+	int workspace[64];
+	if (pcre2_match(code, subj, 3, 0, PCRE2_PARTIAL_SOFT, md, NULL) != PCRE2_ERROR_BADOPTION)
+		fail("verb", "partial matching accepted a history pattern");
+	if (pcre2_dfa_match(code, subj, 3, 0, 0, md, NULL, workspace, 64) != PCRE2_ERROR_BADOPTION)
+		fail("verb", "DFA matcher accepted a history pattern");
+	uint32_t have_jit = 0;
+	pcre2_config(PCRE2_CONFIG_JIT, &have_jit);
+	if (have_jit) {
+		if (pcre2_jit_compile(code, PCRE2_JIT_COMPLETE) != 0) fail("verb", "JIT compile failed");
+		if (pcre2_match(code, subj, 3, 0, 0, md, NULL) != 2 || pcre2_get_capture_event_count(md) != 3)
+			fail("verb", "JIT-compiled history pattern did not use the interpreter");
+		if (pcre2_jit_match(code, subj, 3, 0, 0, md, NULL) != PCRE2_ERROR_JIT_BADOPTION)
+			fail("verb", "pcre2_jit_match ran a history pattern");
+	}
+	pcre2_match_data_free(md);
+	pcre2_code_free(code);
+}
+
 int main(void)
 {
 	static const history_case cases[] = {
@@ -304,6 +329,10 @@ int main(void)
 			PCRE2_CAPTURE_HISTORY, PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, { 0 }, 0, { {0, 0, 0} }, 0 },
 		{ "subroutine returning captures still works without history", "(c(a|b))(?1(2))", "cacb", 0, 3,
 			{ 0, 4, 0, 2, 3, 4 }, 3, { {0, 0, 0} }, 0 },
+		{ "pattern-start verb enables history without the match option", "(*CAPTURE_HISTORY)(a)+", "aaa", 0, 2,
+			{ 0, 3, 2, 3 }, 2, { {1, 0, 1}, {1, 1, 2}, {1, 2, 3} }, 3 },
+		{ "verb combines with other start verbs", "(*NO_JIT)(*CAPTURE_HISTORY)(*UTF)(a)+", "aa", 0, 2,
+			{ 0, 2, 1, 2 }, 2, { {1, 0, 1}, {1, 1, 2} }, 2 },
 		{ "whole-pattern recursion returning captures is rejected", "c(a|b)(?:$|(?R(1)))", "cacb",
 			PCRE2_CAPTURE_HISTORY, PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, { 0 }, 0, { {0, 0, 0} }, 0 },
 		{ "whole-pattern recursion returning captures works without history", "c(a|b)(?:$|(?R(1)))", "cacb", 0, 2,
@@ -313,6 +342,7 @@ int main(void)
 	check_lifecycle();
 	check_limits();
 	check_jit();
+	check_verb_modes();
 	{
 		PCRE2_UCHAR msg[256];
 		if (pcre2_get_error_message(PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, msg, 256) <= 0)

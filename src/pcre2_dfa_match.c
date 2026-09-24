@@ -3399,6 +3399,8 @@ if (re == NULL || subject == NULL || workspace == NULL)
   { rc = PCRE2_ERROR_NULL; goto EXIT; }
 if ((options & ~PUBLIC_DFA_MATCH_OPTIONS) != 0)
   { rc = PCRE2_ERROR_BADOPTION; goto EXIT; }
+if ((re->flags & PCRE2_CAPHIST_SET) != 0)   /* DFA cannot collect history */
+  { rc = PCRE2_ERROR_BADOPTION; goto EXIT; }
 
 if (length == PCRE2_ZERO_TERMINATED)
   {

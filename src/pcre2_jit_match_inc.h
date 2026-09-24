@@ -127,7 +127,7 @@ else if ((options & PCRE2_PARTIAL_SOFT) != 0)
 if (functions == NULL || functions->executable_funcs[index] == NULL)
   return match_data->rc = PCRE2_ERROR_JIT_BADOPTION;
 
-if ((options & PCRE2_CAPTURE_HISTORY) != 0)
+if ((options & PCRE2_CAPTURE_HISTORY) != 0 || (re->flags & PCRE2_CAPHIST_SET) != 0)
   return match_data->rc = PCRE2_ERROR_JIT_BADOPTION;
 
 /* Sanity checks should be handled by pcre2_match. */

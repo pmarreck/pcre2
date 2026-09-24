@@ -2,7 +2,6 @@
 
 ## Capture history and fixed-length repeat exploration
 
-- [x] Map capture writes, interpreter-frame restore boundaries, match-data ownership and available option bits before changing layouts. (done 2026-09-24 13:29 EDT; frame-local history_top; context: CAPTURE_HISTORY.md)
 - [x] Add a failing repeated-capture history C API test, then minimal opt-in interpreter event storage/getters using configured allocators; preserve ordinary ovector behavior. (done 2026-09-24 13:45 EDT)
 - [x] Add rollback, alternation, positive/negative assertion, atomic/possessive, match-data reuse, failure and allocator tests at 8/16/32 widths; 18 mutants all killed. (done 2026-09-24 13:45 EDT)
 - [x] Add heap/match/depth-limit tests with history enabled: each returns its limit error with zero events. (done 2026-09-24 14:02 EDT)
@@ -13,7 +12,7 @@
 - [x] Test JIT fallback and pcre2_jit_match rejection in a local JIT-enabled build at 8/16/32. (done 2026-09-24 14:01 EDT)
 - [ ] Add a JIT-enabled Nix check so JIT history tests run in CI (needs sljit submodule in the flake source).
 - [ ] Get Peter's ruling on returned-capture recursion (reject vs record) and the fork option bit/error code allocation.
-- [ ] Add (*CAPTURE_HISTORY) pattern-start verb.
+- [x] Add (*CAPTURE_HISTORY) pattern-start verb; DFA, partial and direct JIT refuse it; tested in JIT and non-JIT builds. (done 2026-09-24 14:27 EDT)
 - [ ] Add a mechanical check that the fork option bit and error code do not collide with upstream pcre2.h before rebase/release.
 - [x] Expose Zig borrowed offset events through the existing fork build, with ABI/lifetime checks and no subject copies; Nix zig check runs 8/16/32. (done 2026-09-24 14:08 EDT)
 - [x] Build exhaustive small counterexamples and oracle for the overlap ambiguity; chain model matches PCRE2 history by differential test. (done 2026-09-24 14:24 EDT; context: docs/capture_history/OVERLAP_SEMANTICS.md)

@@ -7151,6 +7151,10 @@ options |= (re->flags & FF) / ((FF & (~FF+1)) / (OO & (~OO+1)));
 #undef FF
 #undef OO
 
+/* Fork extension: (*CAPTURE_HISTORY) at the pattern start requests history. */
+
+if ((re->flags & PCRE2_CAPHIST_SET) != 0) options |= PCRE2_CAPTURE_HISTORY;
+
 /* If the pattern was successfully studied with JIT support, we will run the
 JIT executable instead of the rest of this function. Most options must be set
 at compile time for the JIT code to be usable. */
