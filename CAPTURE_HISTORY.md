@@ -33,6 +33,8 @@ reports group 1 as `[2,3)`. `pcre2_capture_event` has the same layout for the
   history is enabled and such a return executes, `pcre2_match()` fails with
   `PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED` (-77) instead of returning
   incomplete history. Without the option these patterns behave as upstream.
+  This rejection is provisional, pending Peter's decision between rejecting
+  and recording returned groups; it is not a settled omission.
 
 ## Outcomes and lifetime
 
@@ -75,7 +77,8 @@ Open questions:
   cost has not been measured.
 - History memory is not counted against the heap limit. Events on the path are
   bounded by the frames that created them, but no test pins that bound.
-- The option bit (`0x00080000`) and error code (-77) are fork allocations and
-  may collide with future upstream values when rebasing.
+- The option bit (`0x00080000`) and error code (-77) are provisional fork-local
+  allocations. Check them mechanically against upstream before any rebase or
+  release.
 
 Tests: `tests/capture_history.c`, run by CTest at all three widths.

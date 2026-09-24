@@ -12,6 +12,7 @@
 - [ ] Test JIT fallback and pcre2_jit_match rejection in a JIT-enabled build (implemented, untested).
 - [ ] Get Peter's ruling on returned-capture recursion (reject vs record) and the fork option bit/error code allocation.
 - [ ] Add (*CAPTURE_HISTORY) pattern-start verb.
+- [ ] Add a mechanical check that the fork option bit and error code do not collide with upstream pcre2.h before rebase/release.
 - [ ] Expose Zig borrowed offset events through the existing fork build, with ABI/lifetime checks and no subject copies.
 - [ ] Resolve overlapping-position aggregation ambiguity with exhaustive small counterexamples before implementing the DNA family oracle or optimized search. (context: docs/capture_history/REVIEW.md)
 - [ ] Implement strict normalization, fixed-length regex finder and separate brute-force Zig oracle; retain all maximal families and optional Pareto labels.
