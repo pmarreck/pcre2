@@ -9,6 +9,7 @@ and also contains some notes for maintainers. Its contents are:
   Files in the maint directory
   Updating to a new Unicode release
   Preparing for a PCRE2 release
+  Managing backports to old releases
   Updating version info for libtool
   Long-term ideas (wish list)
 
@@ -22,6 +23,15 @@ Files in the maint directory
 132html
   A Perl script to convert man pages to HTML (.1 and .3 files "two" HTML),
   used by UpdateAlways.
+
+AsciidocMarkup.md
+  Design goals and authoring conventions for semantic markup in
+  doc/pcre2api.adoc, including HTML and manpage requirements.
+
+AsciidocConverterPcre2.rb
+AsciidocRender
+  Custom Asciidoctor converters and the wrapper that renders HTML and manpage
+  output. Rendering requires the Asciidoctor and Rouge Ruby gems.
 
 CheckMan
   A Perl script to validate the syntax in PCRE2 man pages, used by
@@ -99,8 +109,20 @@ pcre2_chartables.c.non-standard
   characters greater than 128 that are set as spaces, amongst other things. I
   kept it so that it can be used for testing from time to time.
 
+pcre2bench.c
+  A benchmark driver that measures match throughput over a generated
+  pseudo-text corpus, for a set of patterns chosen to exercise the JIT's
+  start-of-match fast-forward paths. It is useful when comparing two builds of
+  the library, for example when adding a SIMD fast-forward implementation for
+  a new architecture. It is not built by any of the PCRE2 build systems; use
+  RunBenchmark, which compiles it. See the comments at the start of the file.
+
 README
   This file.
+
+RunBenchmark
+  A script that compiles pcre2bench.c against an existing build tree and runs
+  it, writing TSV to stdout.
 
 RunCoverage
   A script used to generate the coverage report using Clang. It is called by
@@ -260,10 +282,16 @@ new release.
     -- ':!doc/*.txt' ':!doc/html'
   ```
 
+* Review the ChangeLog and Git log for security fixes, crashes, memory errors,
+  and serious match-correctness errors that should be backported. Update the
+  old release branches, canonical patch dumps, `Makefile.am`, and
+  `SUPPORT-LIFECYCLE.md` as described in "Managing backports to old releases"
+  below.
+
 * Update the library version numbers in configure.ac according to the rules
   given below.
 
-* Add the new library version to the src/libpcre2-*.sym files (even if no new
+* Add the new library version to the src/libpcre2-*.sym.in files (even if no new
   symbols have been added since the last release).
 
 * Push all these changes to main.
@@ -361,6 +389,63 @@ new release.
   next by simply doing a `git merge` in their fork. If the release tag is not
   merged back to main, then users will see unnecessary Git conflicts when
   trying to fast-forward from one release to the next.
+
+
+Managing backports to old releases
+==================================
+
+`SUPPORT-LIFECYCLE.md` describes the public backports. This section describes
+how to maintain them. Do not rebase or reset a published release branch; add
+further backport commits to it.
+
+Read the existing entry for each target release before changing it. An explicit
+"do not use" or "not recommending patches" instruction takes precedence: do not
+add a "Backports to apply" recommendation merely because a fix can be ported.
+
+First determine which releases contain the bug. Start with the newest affected
+release and continue backwards. Inspect the older code and run the regression
+case when the boundary is uncertain: a failed cherry-pick does not prove that a
+release is unaffected. Stop when the relevant feature or faulty code is absent,
+or when the older code already gives the correct result. Justify and verify the
+recorded 'versions affected' list in the `SUPPORT-LIFECYCLE.md` documentation.
+
+The release brances `release/pcre2-10.XX` will always be ahead of the release
+tags `pcre2-10.XX`. The additional commits represent each backported fix.
+
+Cherry-pick fixes in upstream commit order, using `-x` to keep a record of
+the origin of each commit.
+
+The filename in "Patches introduced" names a canonical flat dump of the source
+commit. Generate it on `main` with `git log -p`; do not adapt this file for an
+old release:
+
+```sh
+git log -p -1 COMMIT > patches/pcre2-10.YY-Fix-name.patch
+```
+
+For a single fix made from several commits, name each commit explicitly and
+write them to one file:
+
+```sh
+git log -p --no-walk=unsorted COMMIT1 COMMIT2 \
+  > patches/pcre2-10.YY-Fix-name.patch
+```
+
+Resolve conflicts by adapting the same change and its tests to the older file
+layout, then continue the cherry-pick. Do not apply patch files separately or
+recreate the change as an unrelated commit. If the fix is already present,
+verify it and do not add a duplicate.
+
+Build and test after every commit. Testing each step makes a bad conflict
+resolution easy to identify. Ideally, where a test is present, apply the
+hunks for the test first (without the fix); build and reproduce the failure;
+then apply the fix and build and verify the change.
+
+On `main`, ensure the backport is recorded in `SUPPORT-LIFECYCLE.md` under
+"Patches introduced" for the first release incorporating the fix, with a
+list of versions affected. In each one of those versions, it is to be listed
+under "Backports to apply". Also list each patch file in `Makefile.am` for
+tarball users, and `maint/manifest-tarball`.
 
 
 Updating version info for libtool

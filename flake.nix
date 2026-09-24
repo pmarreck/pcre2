@@ -1,6 +1,6 @@
 {
 	description = "PCRE2 fork build and upstream C tests";
-	inputs.nixpkgs.url = "github:NixOS/nixpkgs/6dedf69f94d03cbe7bdde106f2d4c23ae2a853bf";
+	inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 	outputs = { self, nixpkgs }:
 		let
 			systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
@@ -9,7 +9,7 @@
 				let pkgs = nixpkgs.legacyPackages.${system};
 				in pkgs.stdenv.mkDerivation {
 					pname = "pcre2-dfa-check";
-					version = "10.48-dev";
+					version = "10.49-dev";
 					src = self;
 					strictDeps = true;
 					nativeBuildInputs = [ pkgs.cmake pkgs.ninja ];

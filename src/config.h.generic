@@ -119,6 +119,12 @@ surrounded by #ifndef/#endif lines so that the value can be overridden by -D. */
 /* Define to 1 if you have the `secure_getenv' function. */
 /* #undef HAVE_SECURE_GETENV */
 
+/* Define to 1 if you have the `setrlimit' function. */
+/* #undef HAVE_SETRLIMIT */
+
+/* Define to 1 if stardard (C11 or later) atomics are available. */
+/* #undef HAVE_STDATOMIC_H */
+
 /* Define to 1 if you have the <stdint.h> header file. */
 /* #undef HAVE_STDINT_H */
 
@@ -247,7 +253,7 @@ surrounded by #ifndef/#endif lines so that the value can be overridden by -D. */
 #define PACKAGE_NAME "PCRE2"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "PCRE2 10.48-DEV"
+#define PACKAGE_STRING "PCRE2 10.49-DEV"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "pcre2"
@@ -256,7 +262,7 @@ surrounded by #ifndef/#endif lines so that the value can be overridden by -D. */
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "10.48-DEV"
+#define PACKAGE_VERSION "10.49-DEV"
 
 /* The value of PARENS_NEST_LIMIT specifies the maximum depth of nested
    parentheses (of any kind) in a pattern. This limits the amount of system
@@ -475,16 +481,13 @@ surrounded by #ifndef/#endif lines so that the value can be overridden by -D. */
 #endif
 
 /* Version number of package */
-#define VERSION "10.48-DEV"
+#define VERSION "10.49-DEV"
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */
 
 /* Define for large files, on AIX-style hosts. */
 /* #undef _LARGE_FILES */
-
-/* Define to empty if `const' does not conform to ANSI C. */
-/* #undef const */
 
 /* Define to the type of a signed integer type of width exactly 64 bits if
    such a type exists and the standard includes do not define it. */

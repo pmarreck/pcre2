@@ -20,7 +20,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: false
           fetch-depth: 0 # Necessary for maint/UpdateAlways
@@ -29,6 +29,16 @@ jobs:
           # otherwise use the tip of the branch for `workflow_dispatch` and `pull` triggers.
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+
+      # The zig version from minimum_zig_version in build.zig.zon will be installed.
+      - name: Install zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+
+      # Install Asciidoctor and the Rouge source highlighter
+      - name: Install Asciidoctor and Rouge
+        run: |
+          sudo apt update
+          sudo apt install -y asciidoctor ruby-rouge
 
       - name: UpdateDates
         if: |
@@ -80,7 +90,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: false
           fetch-depth: 0 # Necessary to get both the main and pages branches
@@ -90,7 +100,7 @@ jobs:
       - name: Commit and push, if docs have changed
         run: |
           if ! git diff --exit-code origin/main -- \
-               ./doc ./AUTHORS.md ./LICENCE.md ./SECURITY.md ./README.md \
+               ./doc ./AUTHORS.md ./LICENCE.md ./SECURITY.md ./SUPPORT-LIFECYCLE.md ./README.md \
                ./README ./NON-AUTOTOOLS-BUILD >/dev/null ; then
             # Differences from main: merge and push
             git config user.name "github-actions[bot]"

@@ -36,6 +36,7 @@ config.guess
 config.log
 config.status
 config.sub
+config.lt
 configure
 depcomp
 install-sh
@@ -65,6 +66,10 @@ test3input
 test3output
 test3outputA
 test3outputB
+test3outputC
+test3outputD
+test3outputE
+test3outputF
 testNinput
 testNinputgrep
 teststderr
@@ -106,11 +111,16 @@ src/config.h
 src/config.h.in
 src/pcre2.h
 src/pcre2_chartables.c
+src/libpcre2-8.sym
+src/libpcre2-16.sym
+src/libpcre2-32.sym
+src/libpcre2-posix.sym
 src/stamp-h1
 
 /bazel-*
 *.bazel.lock
 
+zig-pkg/
 zig-out/
 zig-cache/
 .zig-cache/
