@@ -195,6 +195,46 @@ static void check_lifecycle(void)
 	pcre2_code_free(code);
 }
 
+/* Resource limits hit while history is enabled report the limit, never a match or no-match. */
+static void check_limits(void)
+{
+	static const struct { const char *name; int (*set)(pcre2_match_context *, uint32_t); uint32_t value; int expected; } limits[] = {
+		{ "match limit", pcre2_set_match_limit, 10, PCRE2_ERROR_MATCHLIMIT },
+		{ "depth limit", pcre2_set_depth_limit, 10, PCRE2_ERROR_DEPTHLIMIT },
+		{ "heap limit", pcre2_set_heap_limit, 1, PCRE2_ERROR_HEAPLIMIT },
+	};
+	char many[2002];
+	memset(many, 'a', 2000);
+	many[2000] = 'b';
+	many[2001] = 0;
+	PCRE2_UCHAR subject[2002];
+	unsigned n = to_code_units(subject, many);
+	pcre2_code *code = compile_ascii("(a)+b");
+	pcre2_match_data *md = pcre2_match_data_create_from_pattern(code, NULL);
+	pcre2_match_context *mc = pcre2_match_context_create(NULL);
+	if (!code || !md || !mc) { fail("limits", "setup failed"); return; }
+	if (pcre2_match(code, subject, n, 0, PCRE2_CAPTURE_HISTORY, md, mc) != 2 || pcre2_get_capture_event_count(md) != 2000)
+		fail("limits", "control match without limits did not record 2000 events");
+	for (unsigned i = 0; i < sizeof(limits) / sizeof(limits[0]); ++i) {
+		/* Fresh match data: a frame vector grown by an earlier match would hide the heap limit. */
+		pcre2_match_data *fresh = pcre2_match_data_create_from_pattern(code, NULL);
+		pcre2_match_context *ctx = pcre2_match_context_copy(mc);
+		limits[i].set(ctx, limits[i].value);
+		match_ascii(code, "aab", PCRE2_CAPTURE_HISTORY, fresh);   /* leave history to go stale */
+		int rc = pcre2_match(code, subject, n, 0, PCRE2_CAPTURE_HISTORY | PCRE2_NO_JIT, fresh, ctx);
+		if (rc != limits[i].expected) {
+			fprintf(stderr, "FAIL %s: rc=%d expected %d\n", limits[i].name, rc, limits[i].expected);
+			++failures;
+		}
+		if (pcre2_get_capture_event_count(fresh) != 0) fail(limits[i].name, "limit error exposed history");
+		pcre2_match_context_free(ctx);
+		pcre2_match_data_free(fresh);
+	}
+	pcre2_match_context_free(mc);
+	pcre2_match_data_free(md);
+	pcre2_code_free(code);
+}
+
 int main(void)
 {
 	static const history_case cases[] = {
@@ -247,6 +287,7 @@ int main(void)
 	};
 	for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) run_case(&cases[i]);
 	check_lifecycle();
+	check_limits();
 	{
 		PCRE2_UCHAR msg[256];
 		if (pcre2_get_error_message(PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, msg, 256) <= 0)

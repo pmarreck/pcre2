@@ -7,7 +7,8 @@
 - [x] Map capture writes, interpreter-frame restore boundaries, match-data ownership and available option bits before changing layouts. (done 2026-09-24 13:29 EDT; frame-local history_top; context: CAPTURE_HISTORY.md)
 - [x] Add a failing repeated-capture history C API test, then minimal opt-in interpreter event storage/getters using configured allocators; preserve ordinary ovector behavior. (done 2026-09-24 13:45 EDT)
 - [x] Add rollback, alternation, positive/negative assertion, atomic/possessive, match-data reuse, failure and allocator tests at 8/16/32 widths; 18 mutants all killed. (done 2026-09-24 13:45 EDT)
-- [ ] Add heap/match/depth-limit tests with history enabled; decide whether history bytes count against heap_limit. (context: CAPTURE_HISTORY.md)
+- [x] Add heap/match/depth-limit tests with history enabled: each returns its limit error with zero events. (done 2026-09-24 14:02 EDT)
+- [ ] Decide whether history bytes count against heap_limit. (context: CAPTURE_HISTORY.md)
 - [x] Define unsupported DFA/partial/recursion behavior explicitly: BADOPTION for DFA and partial; returned-capture recursion fails with PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED. (done 2026-09-24 13:45 EDT)
 - [ ] Test JIT fallback and pcre2_jit_match rejection in a JIT-enabled build (implemented, untested).
 - [ ] Get Peter's ruling on returned-capture recursion (reject vs record) and the fork option bit/error code allocation.
