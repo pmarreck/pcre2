@@ -375,16 +375,22 @@ int main(void)
 			{ 0, 2, 0, 1 }, 2, { {1, 0, 1} }, 1 },
 		{ "captures nested inside a subroutine call are not recorded", "(b(a))(?1)", "baba", PCRE2_CAPTURE_HISTORY, 3,
 			{ 0, 4, 0, 2, 1, 2 }, 3, { {2, 1, 2}, {1, 0, 2} }, 2 },
-		{ "subroutine returning captures is rejected, not silently incomplete", "(c(a|b))(?1(2))", "cacb",
-			PCRE2_CAPTURE_HISTORY, PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, { 0 }, 0, { {0, 0, 0} }, 0 },
+		{ "subroutine returning a capture records it when the call returns", "(c(a|b))(?1(2))", "cacb",
+			PCRE2_CAPTURE_HISTORY, 3, { 0, 4, 0, 2, 3, 4 }, 3, { {2, 1, 2}, {1, 0, 2}, {2, 3, 4} }, 3 },
+		{ "returned group left unset by the call records nothing", "((b)?a)(?1(2))", "aa",
+			PCRE2_CAPTURE_HISTORY, 2, { 0, 2, 0, 1 }, 2, { {1, 0, 1} }, 1 },
+		{ "unset returned group below a set group records nothing", "(x(b)?(a))(?1(2))", "xaxa",
+			PCRE2_CAPTURE_HISTORY, 4, { 0, 4, 0, 2, PCRE2_UNSET, PCRE2_UNSET, 1, 2 }, 4, { {3, 1, 2}, {1, 0, 2} }, 2 },
+		{ "several returned groups are recorded in group order", "(c(a)(b))(?1(3,2))", "cabcab",
+			PCRE2_CAPTURE_HISTORY, 4, { 0, 6, 0, 3, 4, 5, 5, 6 }, 4, { {2, 1, 2}, {3, 2, 3}, {1, 0, 3}, {2, 4, 5}, {3, 5, 6} }, 5 },
 		{ "subroutine returning captures still works without history", "(c(a|b))(?1(2))", "cacb", 0, 3,
 			{ 0, 4, 0, 2, 3, 4 }, 3, { {0, 0, 0} }, 0 },
 		{ "pattern-start verb enables history without the match option", "(*CAPTURE_HISTORY)(a)+", "aaa", 0, 2,
 			{ 0, 3, 2, 3 }, 2, { {1, 0, 1}, {1, 1, 2}, {1, 2, 3} }, 3 },
 		{ "verb combines with other start verbs", "(*NO_JIT)(*CAPTURE_HISTORY)(*UTF)(a)+", "aa", 0, 2,
 			{ 0, 2, 1, 2 }, 2, { {1, 0, 1}, {1, 1, 2} }, 2 },
-		{ "whole-pattern recursion returning captures is rejected", "c(a|b)(?:$|(?R(1)))", "cacb",
-			PCRE2_CAPTURE_HISTORY, PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, { 0 }, 0, { {0, 0, 0} }, 0 },
+		{ "whole-pattern recursion returning a capture records it on return", "c(a|b)(?:$|(?R(1)))", "cacb",
+			PCRE2_CAPTURE_HISTORY, 2, { 0, 4, 3, 4 }, 2, { {1, 1, 2}, {1, 3, 4} }, 2 },
 		{ "whole-pattern recursion returning captures works without history", "c(a|b)(?:$|(?R(1)))", "cacb", 0, 2,
 			{ 0, 4, 3, 4 }, 2, { {0, 0, 0} }, 0 },
 	};
@@ -394,11 +400,6 @@ int main(void)
 	check_heap_accounting();
 	check_jit();
 	check_verb_modes();
-	{
-		PCRE2_UCHAR msg[256];
-		if (pcre2_get_error_message(PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, msg, 256) <= 0)
-			fail("error text", "PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED has no message");
-	}
 	if (failures) fprintf(stderr, "%u capture-history failure(s)\n", failures);
 	return failures != 0;
 }

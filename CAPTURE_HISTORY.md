@@ -35,12 +35,12 @@ reports group 1 as `[2,3)`. `pcre2_capture_event` has the same layout for the
 - Captures made inside a subroutine call or recursion are not recorded,
   because PCRE2 restores the caller's captures when the call returns.
 - A subroutine or recursion that returns capture groups (`(?1(2))`,
-  `(?R(1))`) would change the ovector without a matching history event. When
-  history is enabled and such a return executes, `pcre2_match()` fails with
-  `PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED` (-77) instead of returning
-  incomplete history. Without the option these patterns behave as upstream.
-  This rejection is provisional, pending Peter's decision between rejecting
-  and recording returned groups; it is not a settled omission.
+  `(?R(1))`) leaves those groups set to their values from inside the call.
+  When the call returns, history records one event per returned group that is
+  set, in ascending group order, carrying the returned value. So `(c(a|b))(?1(2))`
+  on `cacb` gives `{2,1,2} {1,0,2} {2,3,4}`, and the last event for each group
+  matches its ovector entry. Intermediate captures inside the call are not
+  recorded.
 
 ## Outcomes and lifetime
 
@@ -94,8 +94,8 @@ Open questions:
   `tests/benchmark/capture_history_bench.c`: disabled 963.9 ± 24.1 ms vs
   baseline 958.0 ± 19.2 ms, a difference within noise; enabled 1.093 ± 0.015 s,
   about 1.14× baseline. One workload set on one machine; not a gate yet.
-- The option bit (`0x00080000`), error code (-77) and internal pattern flag
-  `PCRE2_CAPHIST_SET` (`0x02000000`) are provisional fork-local allocations. Check them mechanically against upstream before any rebase or
+- The option bit (`0x00080000`) and internal pattern flag `PCRE2_CAPHIST_SET`
+  (`0x02000000`) are provisional fork-local allocations, pending upstream. Check them mechanically against upstream before any rebase or
   release.
 
 ## Zig

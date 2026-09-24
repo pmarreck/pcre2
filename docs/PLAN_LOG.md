@@ -20,3 +20,4 @@ Completed PLAN.md items retired by plan-retire, oldest retirement first.
 - [x] [Capture history and fixed-length repeat exploration] Define unsupported DFA/partial/recursion behavior explicitly: BADOPTION for DFA and partial; returned-capture recursion fails with PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED. (done 2026-09-24 13:45 EDT)
 - [x] [Capture history and fixed-length repeat exploration] Add heap/match/depth-limit tests with history enabled: each returns its limit error with zero events. (done 2026-09-24 14:02 EDT)
 - [x] [Capture history and fixed-length repeat exploration] Test JIT fallback and pcre2_jit_match rejection in a local JIT-enabled build at 8/16/32. (done 2026-09-24 14:01 EDT)
+- [x] [Capture history and fixed-length repeat exploration] Expose Zig borrowed offset events through the existing fork build, with ABI/lifetime checks and no subject copies; Nix zig check runs 8/16/32. (done 2026-09-24 14:08 EDT)

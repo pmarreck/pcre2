@@ -724,6 +724,27 @@ record_capture_event(heapframe *F, pcre2_match_data *match_data, match_block *mb
     }                                                                      \
   } while (0)
 
+/* Fork extension: a subroutine call that returns capture groups, (?n(list)) or
+(?R(list)), leaves those groups set to their values from inside the call. Record
+one event per returned group that is set, in the list's (ascending) order, at
+the moment the call returns, so history stays consistent with the ovector. */
+
+#define RECORD_RETURNED_CAPTURES(list)                                     \
+  do                                                                       \
+  {                                                                        \
+    if ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0)                       \
+    {                                                                      \
+      PCRE2_SPTR cref = (list);                                            \
+      for (; *cref == OP_CREF; cref += 1 + IMM2_SIZE)                      \
+      {                                                                    \
+        uint32_t group = GET2(cref, 1);                                    \
+        PCRE2_SIZE slot = (group << 1) - 2;                                \
+        if (slot < Foffset_top && Fovector[slot] != PCRE2_UNSET)           \
+          RECORD_CAPTURE_EVENT(group, Fovector[slot], Fovector[slot + 1]); \
+      }                                                                    \
+    }                                                                      \
+  } while (0)
+
 
 /* These macros are used to implement backtracking. They simulate a recursive
 call to the match() function by means of a local vector of frames which
@@ -7182,9 +7203,9 @@ NEW_FRAME:
         }
         else
         {
-          if ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0)
-            return PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED;
+          PCRE2_SPTR returned = Fecode;
           recurse_update_offsets(F, P);
+          RECORD_RETURNED_CAPTURES(returned);
         }
 
         Fcapture_last = P->capture_last;
@@ -7304,9 +7325,9 @@ NEW_FRAME:
           }
           else
           {
-            if ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0)
-              return PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED;
+            PCRE2_SPTR returned = Fecode;
             recurse_update_offsets(F, P);
+            RECORD_RETURNED_CAPTURES(returned);
           }
 
           Fcapture_last = P->capture_last;
