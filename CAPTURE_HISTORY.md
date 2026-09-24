@@ -73,8 +73,13 @@ with the ovector.
 
 Open questions:
 
-- The frame grows by one `PCRE2_SIZE` whether or not history is enabled. The
-  cost has not been measured.
+- The frame grows by one `PCRE2_SIZE` whether or not history is enabled.
+  One measurement (2026-09-24, commit 0e817597 vs pre-feature d6133fd5,
+  AMD Threadripper 3990X, NixOS, 8-bit static Release, JIT off, hyperfine
+  30 runs, host load about 7 on 128 cores) with
+  `tests/benchmark/capture_history_bench.c`: disabled 963.9 ± 24.1 ms vs
+  baseline 958.0 ± 19.2 ms, a difference within noise; enabled 1.093 ± 0.015 s,
+  about 1.14× baseline. One workload set on one machine; not a gate yet.
 - History memory is not counted against the heap limit. Events on the path are
   bounded by the frames that created them, but no test pins that bound.
 - The option bit (`0x00080000`) and error code (-77) are provisional fork-local

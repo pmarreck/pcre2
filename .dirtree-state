@@ -9,6 +9,7 @@ annotate=[
 	flake.lock = Exact Nix build dependency revisions
 	flake.nix = Pinned static/shared CMake builds and upstream test checks
 	test = Full static and shared test entry point
+	tests/benchmark/capture_history_bench.c = Fixed pcre2_match workload comparing cost with capture history off vs on (hyperfine input)
 	tests/capture_history.c = C tests for committed capture-close history: rollback, assertions, recursion, lifecycle, allocator; all widths
 	tests/dfa_compatibility.c = C API classifier and DFA execution regressions for all code-unit widths
 ]
