@@ -12,7 +12,8 @@
 - [ ] Turn tests/benchmark/capture_history_bench.c into ./bm with an ndjson log and baseline-vs-current comparison.
 - [ ] Decide whether history bytes count against heap_limit. (context: CAPTURE_HISTORY.md)
 - [x] Define unsupported DFA/partial/recursion behavior explicitly: BADOPTION for DFA and partial; returned-capture recursion fails with PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED. (done 2026-09-24 13:45 EDT)
-- [ ] Test JIT fallback and pcre2_jit_match rejection in a JIT-enabled build (implemented, untested).
+- [x] Test JIT fallback and pcre2_jit_match rejection in a local JIT-enabled build at 8/16/32. (done 2026-09-24 14:01 EDT)
+- [ ] Add a JIT-enabled Nix check so JIT history tests run in CI (needs sljit submodule in the flake source).
 - [ ] Get Peter's ruling on returned-capture recursion (reject vs record) and the fork option bit/error code allocation.
 - [ ] Add (*CAPTURE_HISTORY) pattern-start verb.
 - [ ] Add a mechanical check that the fork option bit and error code do not collide with upstream pcre2.h before rebase/release.

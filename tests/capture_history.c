@@ -235,6 +235,30 @@ static void check_limits(void)
 	pcre2_code_free(code);
 }
 
+/* With JIT available, history requests must use the interpreter or be refused, never run in JIT. */
+static void check_jit(void)
+{
+	uint32_t have_jit = 0;
+	pcre2_config(PCRE2_CONFIG_JIT, &have_jit);
+	if (!have_jit) return;
+	pcre2_code *code = compile_ascii("(a)+b?");
+	pcre2_match_data *md = pcre2_match_data_create_from_pattern(code, NULL);
+	if (!code || !md || pcre2_jit_compile(code, PCRE2_JIT_COMPLETE) != 0) { fail("jit", "setup failed"); return; }
+	PCRE2_UCHAR subj[4] = { 'a', 'a', 'a', 0 };
+	if (pcre2_match(code, subj, 3, 0, PCRE2_CAPTURE_HISTORY, md, NULL) != 2 || pcre2_get_capture_event_count(md) != 3)
+		fail("jit", "pcre2_match on JIT-compiled pattern did not fall back to interpreter history");
+	if (pcre2_match(code, subj, 3, 0, 0, md, NULL) != 2 || pcre2_get_capture_event_count(md) != 0)
+		fail("jit", "JIT match without history exposed stale history");
+	pcre2_match(code, subj, 3, 0, PCRE2_CAPTURE_HISTORY, md, NULL);
+	if (pcre2_jit_match(code, subj, 3, 0, PCRE2_CAPTURE_HISTORY, md, NULL) != PCRE2_ERROR_JIT_BADOPTION
+	    || pcre2_get_capture_event_count(md) != 0)
+		fail("jit", "pcre2_jit_match accepted PCRE2_CAPTURE_HISTORY");
+	if (pcre2_jit_match(code, subj, 3, 0, 0, md, NULL) != 2)
+		fail("jit", "plain pcre2_jit_match no longer works");
+	pcre2_match_data_free(md);
+	pcre2_code_free(code);
+}
+
 int main(void)
 {
 	static const history_case cases[] = {
@@ -288,6 +312,7 @@ int main(void)
 	for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) run_case(&cases[i]);
 	check_lifecycle();
 	check_limits();
+	check_jit();
 	{
 		PCRE2_UCHAR msg[256];
 		if (pcre2_get_error_message(PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED, msg, 256) <= 0)

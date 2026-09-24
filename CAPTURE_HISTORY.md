@@ -58,8 +58,12 @@ reports group 1 as `[2,3)`. `pcre2_capture_event` has the same layout for the
 | `pcre2_match()` on a JIT-compiled pattern | Runs the interpreter (the option is outside the JIT option mask) |
 | `pcre2_jit_match()` | `PCRE2_ERROR_JIT_BADOPTION` |
 
-The two JIT rows are implemented but not yet tested: the fork's Nix build
-disables JIT.
+The JIT rows are tested only when the library is built with JIT (a local
+`-DPCRE2_SUPPORT_JIT=ON` CMake build passed at all widths on 2026-09-24,
+x86_64 Linux). The Nix checks build without JIT and skip them. The fallback
+has two guards: the option is outside the JIT option mask, and
+`pcre2_jit_match()` returns `PCRE2_ERROR_JIT_BADOPTION`, which
+`pcre2_match()` already treats as "use the interpreter".
 
 ## Implementation
 
