@@ -11,24 +11,24 @@ drwxr-xr-x install-dir/usr/local/include
 drwxr-xr-x install-dir/usr/local/lib
 -rw-r--r-- install-dir/usr/local/lib/libpcre2-16.a
 -rwxr-xr-x install-dir/usr/local/lib/libpcre2-16.la
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-16.so -> libpcre2-16.so.0.15.0
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-16.so.0 -> libpcre2-16.so.0.15.0
--rwxr-xr-x install-dir/usr/local/lib/libpcre2-16.so.0.15.0
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-16.so -> libpcre2-16.so.0.16.0
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-16.so.0 -> libpcre2-16.so.0.16.0
+-rwxr-xr-x install-dir/usr/local/lib/libpcre2-16.so.0.16.0
 -rw-r--r-- install-dir/usr/local/lib/libpcre2-32.a
 -rwxr-xr-x install-dir/usr/local/lib/libpcre2-32.la
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-32.so -> libpcre2-32.so.0.15.0
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-32.so.0 -> libpcre2-32.so.0.15.0
--rwxr-xr-x install-dir/usr/local/lib/libpcre2-32.so.0.15.0
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-32.so -> libpcre2-32.so.0.16.0
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-32.so.0 -> libpcre2-32.so.0.16.0
+-rwxr-xr-x install-dir/usr/local/lib/libpcre2-32.so.0.16.0
 -rw-r--r-- install-dir/usr/local/lib/libpcre2-8.a
 -rwxr-xr-x install-dir/usr/local/lib/libpcre2-8.la
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-8.so -> libpcre2-8.so.0.15.0
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-8.so.0 -> libpcre2-8.so.0.15.0
--rwxr-xr-x install-dir/usr/local/lib/libpcre2-8.so.0.15.0
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-8.so -> libpcre2-8.so.0.16.0
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-8.so.0 -> libpcre2-8.so.0.16.0
+-rwxr-xr-x install-dir/usr/local/lib/libpcre2-8.so.0.16.0
 -rw-r--r-- install-dir/usr/local/lib/libpcre2-posix.a
 -rwxr-xr-x install-dir/usr/local/lib/libpcre2-posix.la
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-posix.so -> libpcre2-posix.so.3.0.7
-lrwxrwxrwx install-dir/usr/local/lib/libpcre2-posix.so.3 -> libpcre2-posix.so.3.0.7
--rwxr-xr-x install-dir/usr/local/lib/libpcre2-posix.so.3.0.7
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-posix.so -> libpcre2-posix.so.3.0.8
+lrwxrwxrwx install-dir/usr/local/lib/libpcre2-posix.so.3 -> libpcre2-posix.so.3.0.8
+-rwxr-xr-x install-dir/usr/local/lib/libpcre2-posix.so.3.0.8
 drwxr-xr-x install-dir/usr/local/lib/pkgconfig
 -rw-r--r-- install-dir/usr/local/lib/pkgconfig/libpcre2-16.pc
 -rw-r--r-- install-dir/usr/local/lib/pkgconfig/libpcre2-32.pc
@@ -44,6 +44,7 @@ drwxr-xr-x install-dir/usr/local/share/doc/pcre2
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/NEWS
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/README
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/SECURITY.md
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/SUPPORT-LIFECYCLE.md
 drwxr-xr-x install-dir/usr/local/share/doc/pcre2/html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/NON-AUTOTOOLS-BUILD.txt
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/README.txt
@@ -67,12 +68,20 @@ drwxr-xr-x install-dir/usr/local/share/doc/pcre2/html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_general_context_copy.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_general_context_create.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_general_context_free.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_bsr.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_depth_limit.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_error_message.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_heap_limit.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_mark.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_match_data_heapframes_size.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_match_data_size.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_match_limit.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_max_pattern_length.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_newline.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_offset_limit.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_ovector_count.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_ovector_pointer.html
+-rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_parens_nest_limit.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_get_startchar.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_jit_compile.html
 -rw-r--r-- install-dir/usr/local/share/doc/pcre2/html/pcre2_jit_free_unused_memory.html
@@ -176,12 +185,20 @@ drwxr-xr-x install-dir/usr/local/share/man/man3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_general_context_copy.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_general_context_create.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_general_context_free.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_bsr.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_depth_limit.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_error_message.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_heap_limit.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_mark.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_match_data_heapframes_size.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_match_data_size.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_match_limit.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_max_pattern_length.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_newline.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_offset_limit.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_ovector_count.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_ovector_pointer.3
+-rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_parens_nest_limit.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_get_startchar.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_jit_compile.3
 -rw-r--r-- install-dir/usr/local/share/man/man3/pcre2_jit_free_unused_memory.3

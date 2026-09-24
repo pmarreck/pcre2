@@ -2,7 +2,7 @@
 
 ## Capture history and fixed-length repeat exploration
 
-- [ ] Merge current upstream PCRE2 into capture-history (and its sljit pin) and update flake.lock to current nixpkgs; keep ./test green. (Peter, 2026-09-24)
+- [x] Merge upstream PCRE2 main 315201c3 (129 commits incl. 10.48 and bulk reformat), sljit 3908d4c1, nixpkgs nixos-unstable 4975466d; ./test green. (done 2026-09-24 16:50 EDT)
 - [ ] Count history memory against heap_limit and decide on an explicit event maximum, following PCRE2 precedent. (Peter, 2026-09-24)
 - [ ] Make recursion/subroutines that return captures record history instead of failing with -77. (Peter, 2026-09-24)
 - [ ] Build the fixed-length finder with the chain_packing family rule, checked against the oracle. (Peter, 2026-09-24)

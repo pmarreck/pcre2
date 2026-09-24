@@ -1,6 +1,6 @@
 {
 	description = "PCRE2 fork build and upstream C tests";
-	inputs.nixpkgs.url = "github:NixOS/nixpkgs/6dedf69f94d03cbe7bdde106f2d4c23ae2a853bf";
+	inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 	outputs = { self, nixpkgs }:
 		let
 			systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
@@ -64,6 +64,6 @@
 			});
 			devShells = forSystems (system:
 				let pkgs = nixpkgs.legacyPackages.${system};
-				in { default = pkgs.mkShell { packages = [ pkgs.cmake pkgs.ninja pkgs.pkg-config ]; }; });
+				in { default = pkgs.mkShell { packages = [ pkgs.cmake pkgs.ninja pkgs.pkg-config pkgs.zig pkgs.hyperfine ]; }; });
 		};
 }
