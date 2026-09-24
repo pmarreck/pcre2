@@ -6,9 +6,8 @@
 - [x] Count history memory against heap_limit, covering frame-driven and possessive (event-driven) growth. (done 2026-09-24 16:48 EDT)
 - [ ] Peter to decide whether to add an explicit per-match event maximum (see reply 2026-09-24).
 - [x] Record returned captures at subroutine/recursion return (one event per set returned group); error -77 removed. (done 2026-09-24 16:55 EDT)
-- [ ] Build the fixed-length finder with the chain_packing family rule, checked against the oracle. (Peter, 2026-09-24)
+- [x] Build the chain_packing finder and dna-repeats CLI; exhaustive differential vs oracle; corpus: 399 families, L 8..20, 0.83 s with LNRS bound. (done 2026-09-24 17:02 EDT)
 - [ ] Implement capture history in the JIT, matching interpreter event histories exactly. (Peter, 2026-09-24)
-- [x] Measure disabled/enabled history overhead once: disabled within noise, enabled about 1.14x on the bench workload. (done 2026-09-24 14:10 EDT; context: CAPTURE_HISTORY.md)
 - [ ] Turn tests/benchmark/capture_history_bench.c into ./bm with an ndjson log and baseline-vs-current comparison.
 - [x] Peter: history bytes count against heap_limit; consider a maximum. (done 2026-09-24 16:37 EDT)
 - [ ] Add a JIT-enabled Nix check so JIT history tests run in CI (needs sljit submodule in the flake source).

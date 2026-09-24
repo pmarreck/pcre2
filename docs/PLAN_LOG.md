@@ -21,3 +21,4 @@ Completed PLAN.md items retired by plan-retire, oldest retirement first.
 - [x] [Capture history and fixed-length repeat exploration] Add heap/match/depth-limit tests with history enabled: each returns its limit error with zero events. (done 2026-09-24 14:02 EDT)
 - [x] [Capture history and fixed-length repeat exploration] Test JIT fallback and pcre2_jit_match rejection in a local JIT-enabled build at 8/16/32. (done 2026-09-24 14:01 EDT)
 - [x] [Capture history and fixed-length repeat exploration] Expose Zig borrowed offset events through the existing fork build, with ABI/lifetime checks and no subject copies; Nix zig check runs 8/16/32. (done 2026-09-24 14:08 EDT)
+- [x] [Capture history and fixed-length repeat exploration] Measure disabled/enabled history overhead once: disabled within noise, enabled about 1.14x on the bench workload. (done 2026-09-24 14:10 EDT; context: CAPTURE_HISTORY.md)
