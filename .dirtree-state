@@ -7,6 +7,7 @@ annotate=[
 	PLAN.md = DFA compatibility work and downstream integration status
 	build = Optimized Nix package build entry point
 	docs/capture_history/OVERLAP_SEMANTICS.md = Overlap family-semantics decision doc: rules, counterexamples, measurements, options
+	docs/capture_history/UPSTREAM_FINDINGS.md = Upstream PCRE2 interpreter/JIT divergence found by the capture-history fuzzer, with minimal reproducers
 	experiments/dna_repeats/build.zig = Consumer experiment build: oracle tests, explorer, PCRE2 path dependency
 	experiments/dna_repeats/src/cli.zig = dna-repeats pure CLI pieces: argument parsing, TSV/JSON family rendering
 	experiments/dna_repeats/src/differential_test.zig = Differential test: oracle chain model vs real PCRE2 capture history, anchored at every start

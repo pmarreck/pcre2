@@ -78,13 +78,20 @@ static void gen(buf *b, int depth)
 	}
 }
 
-static int same_result(pcre2_match_data *x, int rx, pcre2_match_data *y, int ry)
+/* rc and ovector only: what an ordinary (history-free) caller observes. */
+static int same_ovector(pcre2_match_data *x, int rx, pcre2_match_data *y, int ry)
 {
 	if (rx != ry) return 0;
 	if (rx > 0) {
 		PCRE2_SIZE *ox = pcre2_get_ovector_pointer(x), *oy = pcre2_get_ovector_pointer(y);
 		for (int i = 0; i < 2 * rx; ++i) if (ox[i] != oy[i]) return 0;
 	}
+	return 1;
+}
+
+static int same_result(pcre2_match_data *x, int rx, pcre2_match_data *y, int ry)
+{
+	if (!same_ovector(x, rx, y, ry)) return 0;
 	PCRE2_SIZE nx = pcre2_get_capture_event_count(x), ny = pcre2_get_capture_event_count(y);
 	if (nx != ny) return 0;
 	const pcre2_capture_event *ex = pcre2_get_capture_event_pointer(x), *ey = pcre2_get_capture_event_pointer(y);
@@ -103,51 +110,70 @@ int main(void)
 	const char *seed = getenv("CAPTURE_HISTORY_DIFF_SEED");
 	if (seed) rng_state = strtoull(seed, NULL, 0);
 
-	unsigned compared = 0, with_events = 0, mismatches = 0, jit_refused = 0, engine_errors = 0;
+	unsigned compared = 0, with_events = 0, mismatches = 0, jit_refused = 0, engine_errors = 0, upstream_divergent = 0;
 	for (unsigned c = 0; c < CASES; ++c) {
-		char text[512] = "(*CAPTURE_HISTORY)";
+		static const char verb[] = "(*CAPTURE_HISTORY)";
+		char text[512];
+		strcpy(text, verb);
 		buf b = { text, strlen(text), sizeof(text), 0 };
 		gen(&b, 0);
 		PCRE2_UCHAR pat[512];
 		size_t plen = 0;
 		for (; text[plen]; ++plen) pat[plen] = (unsigned char)text[plen];
+		const size_t vlen = sizeof(verb) - 1;
 		int err;
 		PCRE2_SIZE eo;
-		pcre2_code *interp = pcre2_compile(pat, plen, 0, &err, &eo, NULL);
-		if (!interp) continue; /* e.g. unbounded lookbehind; not our concern */
-		pcre2_code *jit = pcre2_code_copy(interp);
-		if (pcre2_jit_compile(jit, PCRE2_JIT_COMPLETE) != 0) { ++jit_refused; pcre2_code_free(interp); pcre2_code_free(jit); continue; }
-		pcre2_match_data *mi = pcre2_match_data_create_from_pattern(interp, NULL);
-		pcre2_match_data *mj = pcre2_match_data_create_from_pattern(jit, NULL);
+		/* Four engines: interpreter and JIT, each without and with history. */
+		pcre2_code *pi = pcre2_compile(pat + vlen, plen - vlen, 0, &err, &eo, NULL);
+		pcre2_code *hi = pcre2_compile(pat, plen, 0, &err, &eo, NULL);
+		if (!pi || !hi) { pcre2_code_free(pi); pcre2_code_free(hi); continue; }
+		pcre2_code *pj = pcre2_code_copy(pi), *hj = pcre2_code_copy(hi);
+		if (pcre2_jit_compile(pj, PCRE2_JIT_COMPLETE) != 0 || pcre2_jit_compile(hj, PCRE2_JIT_COMPLETE) != 0) {
+			++jit_refused;
+			pcre2_code_free(pi); pcre2_code_free(hi); pcre2_code_free(pj); pcre2_code_free(hj);
+			continue;
+		}
+		pcre2_match_data *mpi = pcre2_match_data_create_from_pattern(pi, NULL);
+		pcre2_match_data *mpj = pcre2_match_data_create_from_pattern(pj, NULL);
+		pcre2_match_data *mhi = pcre2_match_data_create_from_pattern(hi, NULL);
+		pcre2_match_data *mhj = pcre2_match_data_create_from_pattern(hj, NULL);
 		for (unsigned s = 0; s < SUBJECTS_PER_PATTERN; ++s) {
 			PCRE2_UCHAR subj[12];
-			unsigned n = rnd(sizeof(subj));
+			unsigned n = rnd(sizeof(subj) / sizeof(subj[0]));
 			for (unsigned i = 0; i < n; ++i) subj[i] = rnd(3) ? 'a' : 'b';
-			int ri = pcre2_match(interp, subj, n, 0, PCRE2_NO_JIT, mi, NULL);
-			int rj = pcre2_jit_match(jit, subj, n, 0, 0, mj, NULL);
+			int rpi = pcre2_match(pi, subj, n, 0, PCRE2_NO_JIT, mpi, NULL);
+			int rpj = pcre2_jit_match(pj, subj, n, 0, 0, mpj, NULL);
+			int rhi = pcre2_match(hi, subj, n, 0, PCRE2_NO_JIT, mhi, NULL);
+			int rhj = pcre2_jit_match(hj, subj, n, 0, 0, mhj, NULL);
 			/* Engines legitimately fail differently on limits (e.g. recursion loop vs JIT stack). */
-			if ((ri < 0 && ri != PCRE2_ERROR_NOMATCH) || (rj < 0 && rj != PCRE2_ERROR_NOMATCH)) { ++engine_errors; continue; }
+			if ((rpi < 0 && rpi != PCRE2_ERROR_NOMATCH) || (rpj < 0 && rpj != PCRE2_ERROR_NOMATCH) ||
+			    (rhi < 0 && rhi != PCRE2_ERROR_NOMATCH) || (rhj < 0 && rhj != PCRE2_ERROR_NOMATCH)) { ++engine_errors; continue; }
+			/* Existing upstream interpreter/JIT disagreements are not ours to judge here. */
+			if (!same_ovector(mpi, rpi, mpj, rpj)) { ++upstream_divergent; continue; }
 			++compared;
-			if (ri > 0 && pcre2_get_capture_event_count(mi) > 0) ++with_events;
-			if (!same_result(mi, ri, mj, rj)) {
-				if (++mismatches <= 5) {
-					fprintf(stderr, "MISMATCH /%s/ subject \"", text);
-					for (unsigned i = 0; i < n; ++i) fputc((int)subj[i], stderr);
-					fprintf(stderr, "\": interp rc=%d events=%zu, jit rc=%d events=%zu\n", ri,
-						(size_t)pcre2_get_capture_event_count(mi), rj, (size_t)pcre2_get_capture_event_count(mj));
-				}
+			if (rhi > 0 && pcre2_get_capture_event_count(mhi) > 0) ++with_events;
+			const char *why = NULL;
+			if (!same_ovector(mpi, rpi, mhi, rhi)) why = "history changed the interpreter result";
+			else if (!same_ovector(mpj, rpj, mhj, rhj)) why = "history changed the JIT result";
+			else if (!same_result(mhi, rhi, mhj, rhj)) why = "interpreter and JIT histories differ";
+			if (why && ++mismatches <= 5) {
+				fprintf(stderr, "MISMATCH (%s) /%s/ subject \"", why, text);
+				for (unsigned i = 0; i < n; ++i) fputc((int)subj[i], stderr);
+				fprintf(stderr, "\": interp rc=%d events=%zu, jit rc=%d events=%zu\n", rhi,
+					(size_t)pcre2_get_capture_event_count(mhi), rhj, (size_t)pcre2_get_capture_event_count(mhj));
 			}
 		}
-		pcre2_match_data_free(mi);
-		pcre2_match_data_free(mj);
-		pcre2_code_free(interp);
-		pcre2_code_free(jit);
+		pcre2_match_data_free(mpi); pcre2_match_data_free(mpj);
+		pcre2_match_data_free(mhi); pcre2_match_data_free(mhj);
+		pcre2_code_free(pi); pcre2_code_free(hi); pcre2_code_free(pj); pcre2_code_free(hj);
 	}
+	fprintf(stderr, "%u comparisons, %u with events, %u engine-error cases, %u upstream interpreter/JIT divergences skipped\n",
+		compared, with_events, engine_errors, upstream_divergent);
 	if (compared < CASES || with_events < CASES / 4) {
-		fprintf(stderr, "differential too weak: %u comparisons, %u with events\n", compared, with_events);
+		fprintf(stderr, "differential too weak\n");
 		return 1;
 	}
-	if (engine_errors > compared / 10) { fprintf(stderr, "too many engine errors: %u\n", engine_errors); return 1; }
-	if (mismatches) fprintf(stderr, "%u interpreter/JIT history mismatches in %u comparisons\n", mismatches, compared);
+	if (engine_errors > compared / 10 || upstream_divergent > compared / 100) { fprintf(stderr, "too many excluded cases\n"); return 1; }
+	if (mismatches) fprintf(stderr, "%u history mismatches in %u comparisons\n", mismatches, compared);
 	return mismatches != 0 || jit_refused > CASES / 100;
 }
