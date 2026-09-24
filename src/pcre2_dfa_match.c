@@ -3394,6 +3394,7 @@ if (subject == NULL && length == 0) subject = null_str;
 /* Plausibility checks */
 
 if (match_data == NULL) return PCRE2_ERROR_NULL;
+match_data->history_count = 0;   /* DFA never collects capture history */
 if (re == NULL || subject == NULL || workspace == NULL)
   { rc = PCRE2_ERROR_NULL; goto EXIT; }
 if ((options & ~PUBLIC_DFA_MATCH_OPTIONS) != 0)

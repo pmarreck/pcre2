@@ -86,4 +86,11 @@ PCRE2_10.47 {
     _lib_version;
 };
 
+# Fork extension; not an upstream PCRE2 version node.
+PCRE2_FORK_CAPTURE_HISTORY {
+  global:
+    pcre2_get_capture_event_count_32;
+    pcre2_get_capture_event_pointer_32;
+} PCRE2_10.47;
+
 # PCRE2_10.48 {} PCRE2_10.47;

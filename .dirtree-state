@@ -1,6 +1,7 @@
 # Dirtree: Stateful directory trees in the CLI for humans and LLMs. https://github.com/pmarreck/dirtree
 ver=1.2
 annotate=[
+	CAPTURE_HISTORY.md = Capture-history API semantics, unsupported modes, implementation and open questions
 	DFA_COMPATIBILITY.md = Public compatibility-query contract and validation evidence
 	INTENT.md = Fork purpose and supported validation scope
 	PLAN.md = DFA compatibility work and downstream integration status
@@ -8,5 +9,6 @@ annotate=[
 	flake.lock = Exact Nix build dependency revisions
 	flake.nix = Pinned static/shared CMake builds and upstream test checks
 	test = Full static and shared test entry point
+	tests/capture_history.c = C tests for committed capture-close history: rollback, assertions, recursion, lifecycle, allocator; all widths
 	tests/dfa_compatibility.c = C API classifier and DFA execution regressions for all code-unit widths
 ]

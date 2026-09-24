@@ -92,6 +92,8 @@ pcre2_jit_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length,
   PCRE2_SIZE start_offset, uint32_t options, pcre2_match_data *match_data,
   pcre2_match_context *mcontext)
 {
+match_data->history_count = 0;   /* JIT never collects capture history */
+
 #ifndef SUPPORT_JIT
 
 (void)code;
@@ -123,6 +125,9 @@ else if ((options & PCRE2_PARTIAL_SOFT) != 0)
   index = 1;
 
 if (functions == NULL || functions->executable_funcs[index] == NULL)
+  return match_data->rc = PCRE2_ERROR_JIT_BADOPTION;
+
+if ((options & PCRE2_CAPTURE_HISTORY) != 0)
   return match_data->rc = PCRE2_ERROR_JIT_BADOPTION;
 
 /* Sanity checks should be handled by pcre2_match. */

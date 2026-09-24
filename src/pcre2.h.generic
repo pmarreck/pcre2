@@ -195,6 +195,7 @@ pcre2_jit_match() ignores the latter since it bypasses all sanity checks). */
 #define PCRE2_SUBSTITUTE_MATCHED          0x00010000u  /* pcre2_substitute() only */
 #define PCRE2_SUBSTITUTE_REPLACEMENT_ONLY 0x00020000u  /* pcre2_substitute() only */
 #define PCRE2_DISABLE_RECURSELOOP_CHECK   0x00040000u  /* not for pcre2_dfa_match() or pcre2_jit_match() */
+#define PCRE2_CAPTURE_HISTORY             0x00080000u  /* fork: pcre2_match() interpreter only */
 
 /* Options for pcre2_pattern_convert(). */
 
@@ -439,6 +440,7 @@ released, the numbers must not be changed. */
 #define PCRE2_ERROR_DIFFSUBSOPTIONS   (-74)
 #define PCRE2_ERROR_BAD_BACKSLASH_K   (-75)
 #define PCRE2_ERROR_PARTIALSUBS       (-76)
+#define PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED (-77)  /* fork extension */
 
 
 /* Request types for pcre2_pattern_info() */
@@ -541,6 +543,15 @@ the offset vector (ovector). */
 
 /* Generic types for opaque structures and JIT callback functions. These
 declarations are defined in a macro that is expanded for each width later. */
+
+/* Fork extension: one committed capture-close event on the successful match
+path, in chronological order. Offsets are code units, like the ovector. */
+
+typedef struct pcre2_capture_event {
+  uint32_t   group;
+  PCRE2_SIZE start;
+  PCRE2_SIZE end;
+} pcre2_capture_event;
 
 #define PCRE2_TYPES_LIST \
 struct pcre2_real_general_context; \
@@ -772,6 +783,10 @@ PCRE2_EXP_DECL PCRE2_SIZE *PCRE2_CALL_CONVENTION \
   pcre2_get_ovector_pointer(pcre2_match_data *); \
 PCRE2_EXP_DECL PCRE2_SIZE PCRE2_CALL_CONVENTION \
   pcre2_get_startchar(pcre2_match_data *); \
+PCRE2_EXP_DECL PCRE2_SIZE PCRE2_CALL_CONVENTION \
+  pcre2_get_capture_event_count(pcre2_match_data *); \
+PCRE2_EXP_DECL const pcre2_capture_event *PCRE2_CALL_CONVENTION \
+  pcre2_get_capture_event_pointer(pcre2_match_data *); \
 PCRE2_EXP_DECL int PCRE2_CALL_CONVENTION \
   pcre2_next_match(pcre2_match_data *, PCRE2_SIZE *, uint32_t *);
 
@@ -936,6 +951,8 @@ pcre2_compile are called by application code. */
 #define pcre2_get_match_data_heapframes_size  PCRE2_SUFFIX(pcre2_get_match_data_heapframes_size_)
 #define pcre2_get_match_data_size             PCRE2_SUFFIX(pcre2_get_match_data_size_)
 #define pcre2_get_ovector_pointer             PCRE2_SUFFIX(pcre2_get_ovector_pointer_)
+#define pcre2_get_capture_event_count         PCRE2_SUFFIX(pcre2_get_capture_event_count_)
+#define pcre2_get_capture_event_pointer       PCRE2_SUFFIX(pcre2_get_capture_event_pointer_)
 #define pcre2_get_ovector_count               PCRE2_SUFFIX(pcre2_get_ovector_count_)
 #define pcre2_get_startchar                   PCRE2_SUFFIX(pcre2_get_startchar_)
 #define pcre2_jit_compile                     PCRE2_SUFFIX(pcre2_jit_compile_)

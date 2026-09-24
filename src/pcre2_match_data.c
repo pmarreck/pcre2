@@ -64,6 +64,9 @@ yield->oveccount = oveccount;
 yield->flags = 0;
 yield->heapframes = NULL;
 yield->heapframes_size = 0;
+yield->history = NULL;
+yield->history_capacity = 0;
+yield->history_count = 0;
 return yield;
 }
 
@@ -100,6 +103,9 @@ if (match_data != NULL)
   {
   if (match_data->heapframes != NULL)
     match_data->memctl.free(match_data->heapframes,
+      match_data->memctl.memory_data);
+  if (match_data->history != NULL)
+    match_data->memctl.free(match_data->history,
       match_data->memctl.memory_data);
   if ((match_data->flags & PCRE2_MD_COPIED_SUBJECT) != 0)
     match_data->memctl.free((void *)match_data->subject,
@@ -179,6 +185,26 @@ PCRE2_EXP_DEFN PCRE2_SIZE PCRE2_CALL_CONVENTION
 pcre2_get_match_data_heapframes_size(pcre2_match_data *match_data)
 {
 return match_data->heapframes_size;
+}
+
+/*************************************************
+*        Get committed capture-close history      *
+*************************************************/
+
+/* Fork extension. Events are valid until the match data is reused or freed.
+They are recorded only when PCRE2_CAPTURE_HISTORY was passed to a successful
+interpreted pcre2_match(); any other outcome reports zero events. */
+
+PCRE2_EXP_DEFN PCRE2_SIZE PCRE2_CALL_CONVENTION
+pcre2_get_capture_event_count(pcre2_match_data *match_data)
+{
+return match_data->history_count;
+}
+
+PCRE2_EXP_DEFN const pcre2_capture_event * PCRE2_CALL_CONVENTION
+pcre2_get_capture_event_pointer(pcre2_match_data *match_data)
+{
+return match_data->history;
 }
 
 /* End of pcre2_match_data.c */

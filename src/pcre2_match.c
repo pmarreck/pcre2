@@ -72,7 +72,7 @@ information, and fields within it. */
   (PCRE2_ANCHORED|PCRE2_ENDANCHORED|PCRE2_NOTBOL|PCRE2_NOTEOL|PCRE2_NOTEMPTY| \
    PCRE2_NOTEMPTY_ATSTART|PCRE2_NO_UTF_CHECK|PCRE2_PARTIAL_HARD| \
    PCRE2_PARTIAL_SOFT|PCRE2_NO_JIT|PCRE2_COPY_MATCHED_SUBJECT| \
-   PCRE2_DISABLE_RECURSELOOP_CHECK)
+   PCRE2_DISABLE_RECURSELOOP_CHECK|PCRE2_CAPTURE_HISTORY)
 
 #define PUBLIC_JIT_MATCH_OPTIONS \
    (PCRE2_NO_UTF_CHECK|PCRE2_NOTBOL|PCRE2_NOTEOL|PCRE2_NOTEMPTY|\
@@ -184,6 +184,7 @@ point of use and undefined afterwards. */
 #define Frdepth            F->rdepth
 #define Fstart_match       F->start_match
 #define Foffset_top        F->offset_top
+#define Fhistory_top       F->history_top
 #define Fop                F->op
 #define Fovector           F->ovector
 #define Freturn_id         F->return_id
@@ -632,6 +633,55 @@ A partial match is returned only if no complete match can be found. */
   while (0)
 
 
+/* Fork extension: append one capture-close event for the current path. The
+event array is shared by all frames; each frame's history_top says how many
+events belong to its path, so backtracking to an older frame truncates history
+in O(1) exactly where it restores the frame's ovector. Growth doubles and uses
+the match data's allocator. */
+
+static int
+record_capture_event(heapframe *F, pcre2_match_data *match_data,
+  uint32_t group, PCRE2_SIZE start, PCRE2_SIZE end)
+{
+pcre2_capture_event *event;
+if (F->history_top >= match_data->history_capacity)
+  {
+  PCRE2_SIZE old_capacity = match_data->history_capacity;
+  PCRE2_SIZE new_capacity = (old_capacity == 0)? 16 : 2 * old_capacity;
+  pcre2_capture_event *new_history;
+  if (new_capacity > PCRE2_SIZE_MAX / sizeof(pcre2_capture_event))
+    return PCRE2_ERROR_NOMEMORY;
+  new_history = match_data->memctl.malloc(
+    new_capacity * sizeof(pcre2_capture_event), match_data->memctl.memory_data);
+  if (new_history == NULL) return PCRE2_ERROR_NOMEMORY;
+  if (old_capacity != 0)
+    {
+    memcpy(new_history, match_data->history,
+      old_capacity * sizeof(pcre2_capture_event));
+    match_data->memctl.free(match_data->history,
+      match_data->memctl.memory_data);
+    }
+  match_data->history = new_history;
+  match_data->history_capacity = new_capacity;
+  }
+event = match_data->history + F->history_top++;
+event->group = group;
+event->start = start;
+event->end = end;
+return 0;
+}
+
+#define RECORD_CAPTURE_EVENT(group, start, end) \
+  do { \
+     if ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0) \
+       { \
+       int hrc = record_capture_event(F, match_data, group, start, end); \
+       if (hrc != 0) return hrc; \
+       } \
+     } \
+  while (0)
+
+
 /* These macros are used to implement backtracking. They simulate a recursive
 call to the match() function by means of a local vector of frames which
 remember the backtracking points. */
@@ -743,6 +793,7 @@ Fcurrent_recurse = RECURSE_UNSET;   /* Not pattern recursing. */
 Fstart_match = Feptr = start_eptr;  /* Current data pointer and start match */
 Fmark = NULL;                       /* Most recent mark */
 Foffset_top = 0;                    /* End of captures within the frame */
+Fhistory_top = 0;                   /* No capture-history events yet */
 Flast_group_offset = PCRE2_UNSET;   /* Saved frame of most recent group */
 group_frame_type = 0;               /* Not a start of group frame */
 goto NEW_FRAME;                     /* Start processing with this frame */
@@ -918,6 +969,7 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
       Fovector[offset] = P->eptr - mb->start_subject;
       Fovector[offset+1] = Feptr - mb->start_subject;
       if (offset >= Foffset_top) Foffset_top = offset + 2;
+      RECORD_CAPTURE_EVENT(number, Fovector[offset], Fovector[offset+1]);
       }
     Fecode += PRIV(OP_lengths)[*Fecode];
     break;
@@ -1039,6 +1091,7 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
 
     mb->end_match_ptr = Feptr;           /* Record where we ended */
     mb->end_offset_top = Foffset_top;    /* and how many extracts were taken */
+    match_data->history_count = Fhistory_top;
     mb->mark = Fmark;                    /* and the last success mark */
     if (Feptr > mb->last_used_ptr) mb->last_used_ptr = Feptr;
 
@@ -5800,6 +5853,7 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
               (char *)assert_accept_frame + offsetof(heapframe, ovector),
               assert_accept_frame->offset_top * sizeof(PCRE2_SIZE));
         Foffset_top = assert_accept_frame->offset_top;
+        Fhistory_top = assert_accept_frame->history_top;
         Fmark = assert_accept_frame->mark;
         break;
         }
@@ -5943,6 +5997,7 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
               (char *)assert_accept_frame + offsetof(heapframe, ovector),
               assert_accept_frame->offset_top * sizeof(PCRE2_SIZE));
         Foffset_top = assert_accept_frame->offset_top;
+        Fhistory_top = assert_accept_frame->history_top;
         Fmark = assert_accept_frame->mark;
         mb->end_subject = Lsaved_end_subject;
         mb->true_end_subject = mb->end_subject + Ltrue_end_extra;
@@ -6111,6 +6166,7 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
                 (char *)assert_accept_frame + offsetof(heapframe, ovector),
                 assert_accept_frame->offset_top * sizeof(PCRE2_SIZE));
           Foffset_top = assert_accept_frame->offset_top;
+          Fhistory_top = assert_accept_frame->history_top;
 
           PCRE2_FALLTHROUGH /* Fall through */
           /* In the case of a match, the captures have already been put into
@@ -6346,6 +6402,7 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
         memcpy((char *)P + offsetof(heapframe, ovector), Fovector,
           Foffset_top * sizeof(PCRE2_SIZE));
         P->offset_top = Foffset_top;
+        P->history_top = Fhistory_top;
         P->mark = Fmark;
         Fback_frame = (char *)F - (char *)P;
         RRETURN(MATCH_MATCH);
@@ -6391,7 +6448,11 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
         Foffset_top = P->offset_top;
         }
       else
+        {
+        if ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0)
+          return PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED;
         recurse_update_offsets(F, P);
+        }
 
       Fcapture_last = P->capture_last;
       Fcurrent_recurse = P->current_recurse;
@@ -6504,7 +6565,11 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
           Foffset_top = P->offset_top;
           }
         else
+          {
+          if ((mb->moptions & PCRE2_CAPTURE_HISTORY) != 0)
+            return PCRE2_ERROR_CAPTURE_HISTORY_UNSUPPORTED;
           recurse_update_offsets(F, P);
+          }
 
         Fcapture_last = P->capture_last;
         Fcurrent_recurse = P->current_recurse;
@@ -6518,6 +6583,8 @@ fprintf(stderr, "++ %2ld op=%3d %s\n", Fecode - mb->start_code, *Fecode,
       Fovector[offset] = P->eptr - mb->start_subject;
       Fovector[offset+1] = Feptr - mb->start_subject;
       if (offset >= Foffset_top) Foffset_top = offset + 2;
+      if (Fcurrent_recurse == RECURSE_UNSET)
+        RECORD_CAPTURE_EVENT(number, Fovector[offset], Fovector[offset+1]);
       break;
       }  /* End actions relating to the starting opcode */
 
@@ -7040,6 +7107,7 @@ if (subject == NULL && length == 0) subject = null_str;
 /* Plausibility checks */
 
 if (match_data == NULL) return PCRE2_ERROR_NULL;
+match_data->history_count = 0;
 if (code == NULL || subject == NULL)
   return match_data->rc = PCRE2_ERROR_NULL;
 if ((options & ~PUBLIC_MATCH_OPTIONS) != 0)
@@ -7110,6 +7178,11 @@ time. */
 
 if (mb->partial != 0 &&
    ((re->overall_options | options) & PCRE2_ENDANCHORED) != 0)
+  return match_data->rc = PCRE2_ERROR_BADOPTION;
+
+/* Fork extension: capture history is defined only for complete matches. */
+
+if (mb->partial != 0 && (options & PCRE2_CAPTURE_HISTORY) != 0)
   return match_data->rc = PCRE2_ERROR_BADOPTION;
 
 /* It is an error to set an offset limit without setting the flag at compile

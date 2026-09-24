@@ -702,6 +702,9 @@ typedef struct pcre2_real_match_data {
   PCRE2_SPTR       mark;             /* Pointer to last mark */
   struct heapframe *heapframes;      /* Backtracking frames heap memory */
   PCRE2_SIZE       heapframes_size;  /* Malloc-ed size */
+  pcre2_capture_event *history;     /* Capture-close events (fork extension) */
+  PCRE2_SIZE       history_capacity; /* Allocated events */
+  PCRE2_SIZE       history_count;    /* Events on the successful path */
   PCRE2_SIZE       subject_length;   /* Subject length */
   PCRE2_SIZE       start_offset;     /* Offset to start of search */
   PCRE2_SIZE       leftchar;         /* Offset to leftmost code unit */
@@ -1010,6 +1013,7 @@ typedef struct heapframe {
   uint32_t current_recurse;     /* Group number of current (deepest) pattern recursion */
   uint32_t capture_last;        /* Most recent capture */
   PCRE2_SIZE last_group_offset; /* Saved offset to most recent group frame */
+  PCRE2_SIZE history_top;       /* Capture-history events on this path */
   PCRE2_SIZE offset_top;        /* Offset after highest capture */
   PCRE2_SIZE ovector[131072];   /* Must be last in the structure */
 } heapframe;
