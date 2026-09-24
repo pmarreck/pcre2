@@ -13,7 +13,7 @@
 - [ ] Add a JIT-enabled Nix check so JIT history tests run in CI (needs sljit submodule in the flake source).
 - [ ] Get Peter's ruling on returned-capture recursion (reject vs record) and the fork option bit/error code allocation.
 - [x] Add (*CAPTURE_HISTORY) pattern-start verb; DFA, partial and direct JIT refuse it; tested in JIT and non-JIT builds. (done 2026-09-24 14:27 EDT)
-- [ ] Add a mechanical check that the fork option bit and error code do not collide with upstream pcre2.h before rebase/release.
+- [ ] Add a mechanical check that the fork option bit, error code and internal flag bit do not collide with upstream before rebase/release.
 - [x] Expose Zig borrowed offset events through the existing fork build, with ABI/lifetime checks and no subject copies; Nix zig check runs 8/16/32. (done 2026-09-24 14:08 EDT)
 - [x] Build exhaustive small counterexamples and oracle for the overlap ambiguity; chain model matches PCRE2 history by differential test. (done 2026-09-24 14:24 EDT; context: docs/capture_history/OVERLAP_SEMANTICS.md)
 - [ ] Get Peter's family-rule choice (A chain_packing, B maximal_chains, C all_occurrences) before building the finder. (context: docs/capture_history/OVERLAP_SEMANTICS.md)

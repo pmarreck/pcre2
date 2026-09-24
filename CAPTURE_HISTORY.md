@@ -92,8 +92,8 @@ Open questions:
   about 1.14× baseline. One workload set on one machine; not a gate yet.
 - History memory is not counted against the heap limit. Events on the path are
   bounded by the frames that created them, but no test pins that bound.
-- The option bit (`0x00080000`) and error code (-77) are provisional fork-local
-  allocations. Check them mechanically against upstream before any rebase or
+- The option bit (`0x00080000`), error code (-77) and internal pattern flag
+  `PCRE2_CAPHIST_SET` (`0x02000000`) are provisional fork-local allocations. Check them mechanically against upstream before any rebase or
   release.
 
 ## Zig
