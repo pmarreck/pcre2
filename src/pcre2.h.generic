@@ -471,7 +471,7 @@ released, the numbers must not be changed. */
 #define PCRE2_INFO_FRAMESIZE      24
 #define PCRE2_INFO_HEAPLIMIT      25
 #define PCRE2_INFO_EXTRAOPTIONS   26
-#define PCRE2_INFO_DFA_COMPATIBILITY 27 /* fork extension */
+#define PCRE2_INFO_DFA_COMPATIBILITY 27
 
 /* Request types for pcre2_config(). */
 

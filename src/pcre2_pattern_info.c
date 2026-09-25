@@ -41,16 +41,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "pcre2_internal.h"
 
-static int enumerate_pattern(const pcre2_code *code,
-                             int (*callback)(pcre2_callout_enumerate_block *, void *),
-                             void *callout_data, BOOL check_dfa);
+static int enumerate_pattern(const pcre2_code *, int (*)(pcre2_callout_enumerate_block *, void *),
+                             void *, BOOL);
 
 /* Keep the opcode-range checks below tied to the audited instruction set.
 An upstream opcode addition must trigger review rather than silent acceptance. */
 typedef char dfa_opcode_review[(OP_TABLE_LENGTH == 173) ? 1 : -1];
 
-/* Fork extension: inspect operands as well as opcodes. This is deliberately
-conservative for unreachable branches, which remain part of the compiled pattern. */
+/* Inspect operands as well as opcodes. This is deliberately conservative for
+unreachable branches, which remain part of the compiled pattern. */
 static int
 dfa_compatibility(PCRE2_SPTR cc)
 {
@@ -62,7 +61,7 @@ dfa_compatibility(PCRE2_SPTR cc)
     if (op >= OP_TYPESTAR && op <= OP_TYPEPOSUPTO)
     {
       unsigned offset =
-        (op >= OP_TYPEUPTO && op <= OP_TYPEEXACT) || op == OP_TYPEPOSUPTO ? 1 + IMM2_SIZE : 1;
+          (op >= OP_TYPEUPTO && op <= OP_TYPEEXACT) || op == OP_TYPEPOSUPTO ? 1 + IMM2_SIZE : 1;
       if (cc[offset] == OP_ANYBYTE)
         return PCRE2_ERROR_DFA_UITEM;
     }
@@ -115,14 +114,13 @@ dfa_compatibility(PCRE2_SPTR cc)
 
   case OP_RECURSE:
     /* Even supported calls can hit RECURSELOOP or the internal ovector limit.
-    Decline to certify calls, including nonrecursive subroutine calls. */
+  Decline to certify calls, including nonrecursive subroutine calls. */
     return cc[1 + LINK_SIZE] == OP_CREF ? PCRE2_ERROR_DFA_UITEM : PCRE2_ERROR_DFA_RECURSE;
 
   default:
     return PCRE2_ERROR_DFA_UITEM;
   }
 }
-
 
 
 /*************************************************
@@ -207,8 +205,8 @@ pcre2_pattern_info(const pcre2_code *code, uint32_t what, void *where)
   {
   case PCRE2_INFO_DFA_COMPATIBILITY:
     *((int *)where) = (re->overall_options & PCRE2_MATCH_INVALID_UTF) != 0
-                        ? PCRE2_ERROR_DFA_UINVALID_UTF
-                        : enumerate_pattern(code, NULL, NULL, TRUE);
+                          ? PCRE2_ERROR_DFA_UINVALID_UTF
+                          : enumerate_pattern(code, NULL, NULL, TRUE);
     break;
 
   case PCRE2_INFO_ALLOPTIONS:
@@ -357,8 +355,7 @@ Returns:        0 when successfully completed
 */
 
 static int
-enumerate_pattern(const pcre2_code *code,
-                  int (*callback)(pcre2_callout_enumerate_block *, void *),
+enumerate_pattern(const pcre2_code *code, int (*callback)(pcre2_callout_enumerate_block *, void *),
                   void *callout_data, BOOL check_dfa)
 {
   const pcre2_real_code *re = (const pcre2_real_code *)code;
@@ -538,8 +535,7 @@ enumerate_pattern(const pcre2_code *code,
 
 PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
 pcre2_callout_enumerate(const pcre2_code *code,
-                        int (*callback)(pcre2_callout_enumerate_block *callout_block,
-                                        void *callout_data),
+                        int (*callback)(pcre2_callout_enumerate_block *, void *),
                         void *callout_data)
 {
   return enumerate_pattern(code, callback, callout_data, FALSE);

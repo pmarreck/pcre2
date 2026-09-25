@@ -48,14 +48,14 @@ const:PCRE2_INFO_BSR::
         CR, LF, or CRLF only
 const:PCRE2_INFO_CAPTURECOUNT::
     Number of capturing subpatterns
-const:PCRE2_INFO_DFA_COMPATIBILITY::
-    Conservative DFA compatibility result (fork extension)
 const:PCRE2_INFO_DEPTHLIMIT::
     Backtracking depth limit if set,
     otherwise const:PCRE2_ERROR_UNSET
 const:PCRE2_INFO_EXTRAOPTIONS::
     Extra options that were passed in the
     compile context
+const:PCRE2_INFO_DFA_COMPATIBILITY::
+    Conservative DFA compatibility result (fork extension)
 const:PCRE2_INFO_FIRSTBITMAP::
     Bitmap of first code units, or [.c]`NULL`
 const:PCRE2_INFO_FIRSTCODETYPE::
@@ -134,17 +134,15 @@ const:PCRE2_INFO_SIZE::
     [.c]`size_t`
 
 The fork extension const:PCRE2_INFO_DFA_COMPATIBILITY inspects all compiled
-instructions without matching a subject. The output integer is zero for a
-pattern that passes this conservative check, or const:PCRE2_ERROR_DFA_UITEM,
-const:PCRE2_ERROR_DFA_UCOND, const:PCRE2_ERROR_DFA_UINVALID_UTF, or
-const:PCRE2_ERROR_DFA_RECURSE. The function itself returns zero when the query
-succeeds, including when its output reports incompatibility.
-
-Recursion and subroutine calls are conservatively rejected, including
-nonrecursive calls. Unreachable compiled branches are also checked. A passing
-result does not eliminate allocation failures, resource limits, invalid
-input or option errors, or errors from installed callouts. Revalidate after
-changing compilation options or engine versions.
+instructions without requiring a subject string. It stores zero when the
+pattern passes a conservative DFA compatibility check, or a negative
+const:PCRE2_ERROR_DFA_UITEM, const:PCRE2_ERROR_DFA_UCOND,
+const:PCRE2_ERROR_DFA_RECURSE, or const:PCRE2_ERROR_DFA_UINVALID_UTF result.
+The function itself returns zero when the query succeeds, including when the
+stored compatibility result is negative. All subroutine calls, including
+nonrecursive calls, are conservatively rejected. Unreachable compiled branches
+are checked too. A zero compatibility result is not a termination proof and
+does not rule out resource exhaustion, invalid subjects, or invalid match options.
 
 The yield of the function is zero on success or:
 

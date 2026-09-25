@@ -4,7 +4,6 @@
 
     // Do NOT change this for new releases.
     // DO change this if making a fork of PCRE2 which is used by any Zig clients.
-    // Fork (pmarreck/pcre2): keeps the fork's established fingerprint.
     .fingerprint = 0x914b3d636e13b44b,
 
     .minimum_zig_version = "0.16.0",
