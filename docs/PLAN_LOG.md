@@ -25,3 +25,8 @@ Completed PLAN.md items retired by plan-retire, oldest retirement first.
 - [x] [Capture history and fixed-length repeat exploration] Measure disabled/enabled history overhead once: disabled within noise, enabled about 1.14x on the bench workload. (done 2026-09-24 14:10 EDT; context: CAPTURE_HISTORY.md)
 - [x] [Capture history and fixed-length repeat exploration] Add (*CAPTURE_HISTORY) pattern-start verb; DFA, partial and direct JIT refuse it; tested in JIT and non-JIT builds. (done 2026-09-24 14:27 EDT)
 - [x] [Capture history and fixed-length repeat exploration] Build exhaustive small counterexamples and oracle for the overlap ambiguity; chain model matches PCRE2 history by differential test. (done 2026-09-24 14:24 EDT; context: docs/capture_history/OVERLAP_SEMANTICS.md)
+
+## Retired 2026-09-24
+
+- [x] [Capture history] Peter: history bytes count against heap_limit; consider a maximum. (done 2026-09-24 16:37 EDT)
+- [x] [Capture history] Peter: record returned-capture recursion; fork numbers documented as provisional pending upstream. (done 2026-09-24 16:37 EDT)
