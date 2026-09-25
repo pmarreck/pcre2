@@ -2,6 +2,7 @@
 
 ## Capture history and fixed-length repeat exploration
 
+- [ ] Consolidate with ../pcre2 (its main merged the same upstream 315201c3 as 84bf8c8e, pushed); awaiting Peter's choice of target, DNA-experiment home and push scope. (Peter, 2026-09-24 21:32 EDT)
 - [x] Merge upstream PCRE2 main 315201c3 (129 commits incl. 10.48 and bulk reformat), sljit 3908d4c1, nixpkgs nixos-unstable 4975466d; ./test green. (done 2026-09-24 16:50 EDT)
 - [x] Count history memory against heap_limit, covering frame-driven and possessive (event-driven) growth. (done 2026-09-24 16:48 EDT)
 - [ ] Peter to decide whether to add an explicit per-match event maximum (see reply 2026-09-24).
