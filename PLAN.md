@@ -14,10 +14,10 @@ Completed DFA implementation details are in `docs/PLAN_LOG.md`.
 	- [x] Fix and tests on branch fix-accept-in-called-assertion-group (324bdf2e), pushed to the fork; RunTest green at all widths, fork fuzz shows 0 divergences. (done 2026-09-24 22:12 EDT)
 	- [ ] Peter to review, then open the upstream PR from that branch referencing #1008.
 	- [ ] After upstream merges, merge it here and tighten the fuzzer to fail on any interpreter/JIT divergence.
-- [ ] Consolidate into the pcre2 repository as branch capture-history (merged on main 84bf8c8e), push the branch only, retire the separate checkout; DNA finder moves to ~/Code/dna_repeats. (Peter, 2026-09-24 21:40 EDT)
+- [x] Consolidate into the pcre2 repository as branch capture-history (merged on main 84bf8c8e), push the branch only, retire the separate checkout; DNA finder moves to ~/Code/dna_repeats. (Peter, 2026-09-24 21:40 EDT) (done 2026-09-25 12:10 EDT)
 	- [x] Split experiments/dna_repeats to ~/Code/dna_repeats (subtree 3b1409cb), pinned to this branch at bc340132; removed here. (done 2026-09-24 21:48 EDT)
 	- [x] Push capture-history to origin as a branch only; main untouched. (done 2026-09-24 21:42 EDT, bc340132)
-	- [ ] Retire this checkout after the pcre2 agent confirms it has the branch (fetch origin in ../pcre2 is theirs to run).
+	- [x] Retire this checkout after the pcre2 agent confirms it has the branch; pcre2 agent fetched daf33f08 and 324bdf2e, main 84bf8c8e has no in-flight work. Checkout moved to ~/.Trash; continue in ../pcre2 on branch capture-history. (done 2026-09-25 12:10 EDT)
 - [x] Count history memory against heap_limit, covering frame-driven and possessive (event-driven) growth. (done 2026-09-24 16:48 EDT)
 - [ ] Peter to decide whether to add an explicit per-match event maximum (see reply 2026-09-24).
 - [x] Record returned captures at subroutine/recursion return (one event per set returned group); error -77 removed. (done 2026-09-24 16:55 EDT)
