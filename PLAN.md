@@ -12,6 +12,9 @@ Completed DFA implementation details are in `docs/PLAN_LOG.md`.
 - [ ] Report the upstream interpreter/JIT divergence ((?=(a|(*ACCEPT))(?1)x)) as a PCRE2Project issue with pristine-upstream pcre2test evidence. (Peter, 2026-09-24 21:38 EDT)
 - [ ] Fix it on a clean branch from upstream/main (no fork changes) and open a separate upstream PR. (Peter, 2026-09-24 21:38 EDT)
 - [ ] Consolidate into the pcre2 repository as branch capture-history (merged on main 84bf8c8e), push the branch only, retire the separate checkout; DNA finder moves to ~/Code/dna_repeats. (Peter, 2026-09-24 21:40 EDT)
+	- [x] Split experiments/dna_repeats to ~/Code/dna_repeats (subtree 3b1409cb), pinned to this branch at bc340132; removed here. (done 2026-09-24 21:48 EDT)
+	- [x] Push capture-history to origin as a branch only; main untouched. (done 2026-09-24 21:42 EDT, bc340132)
+	- [ ] Retire this checkout after the pcre2 agent confirms it has the branch (fetch origin in ../pcre2 is theirs to run).
 - [x] Count history memory against heap_limit, covering frame-driven and possessive (event-driven) growth. (done 2026-09-24 16:48 EDT)
 - [ ] Peter to decide whether to add an explicit per-match event maximum (see reply 2026-09-24).
 - [x] Record returned captures at subroutine/recursion return (one event per set returned group); error -77 removed. (done 2026-09-24 16:55 EDT)
