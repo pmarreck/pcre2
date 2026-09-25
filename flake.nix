@@ -77,7 +77,6 @@
 							for width in 8 16 32; do
 								zig build test -Dcode-unit-width=$width --summary all --cache-dir "$TMPDIR/zig-cache" --prefix "$TMPDIR/out-$width"
 							done
-							(cd experiments/dna_repeats && zig build test --summary all --cache-dir "$TMPDIR/zig-cache-dna")
 							mkdir -p $out
 							echo "zig tests passed" > $out/result
 							runHook postBuild

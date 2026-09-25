@@ -139,3 +139,7 @@ use suffixed names such as `pcre2_code_8` and `pcre2_match_8`.
 Tests: `tests/capture_history.c` (CTest, all widths) and
 `src/zig/capture_history_test.zig` (`zig build test`, Nix check `zig`, all
 widths).
+
+The first consumer, the chain_packing DNA repeat-family finder and its
+`dna-repeats` CLI, lives in its own project (`~/Code/dna_repeats`) and
+depends on this branch as a Zig package.

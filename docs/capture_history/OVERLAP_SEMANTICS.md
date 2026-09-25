@@ -15,7 +15,7 @@ once a unit can overlap itself:
 
 ## Candidate rules
 
-`experiments/dna_repeats/src/families.zig` implements five rules as plain
+`src/families.zig` in `~/Code/dna_repeats` (moved out of this branch on 2026-09-24) implements five rules as plain
 quadratic scans:
 
 | Rule | Definition |
