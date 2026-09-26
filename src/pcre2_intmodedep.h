@@ -657,6 +657,7 @@ typedef struct pcre2_real_match_context {
   uint32_t heap_limit;
   uint32_t match_limit;
   uint32_t depth_limit;
+  uint32_t capture_history_limit; // Fork extension: most capture-history events per match
 } pcre2_real_match_context;
 
 /* The real convert context structure. */
@@ -1074,6 +1075,7 @@ doing traditional NFA matching (pcre2_match() and friends). */
 typedef struct match_block {
   pcre2_memctl memctl;                           // For general use
   uint32_t heap_limit;                           // As it says
+  uint32_t capture_history_limit;                // Fork extension: event cap per match
   uint32_t match_limit;                          // As it says
   uint32_t match_limit_depth;                    // As it says
   uint32_t match_call_count;                     // Number of times a new frame is created

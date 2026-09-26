@@ -58,6 +58,16 @@ reports group 1 as `[2,3)`. `pcre2_capture_event` has the same layout for the
   `PCRE2_ERROR_HEAPLIMIT`. As with frames, storage retained in reused match data
   is only checked when it has to grow. Matching without the option
   allocates nothing for history.
+- The number of events on the current path is capped by
+  `pcre2_set_capture_history_limit(mcontext, limit)` (read it back with
+  `pcre2_get_capture_history_limit()`). The limit is a `uint32_t` and defaults
+  to `UINT32_MAX`, so an event count always fits in 32 bits (Peter,
+  2026-09-25). Appending an event beyond the limit ends the match with
+  `PCRE2_ERROR_CAPTURE_HISTORY_LIMIT` (-77), without trying other alternatives,
+  like the other resource limits. Events that backtracking has already
+  discarded do not count: `(?:(a)(a)(a)x|(a))` on `aaa` succeeds with limit 3
+  and fails with limit 2. Both engines enforce it. With the default heap limit
+  (20,000,000 KiB) the heap limit is reached long before the event limit.
 
 ## Execution modes
 
@@ -113,8 +123,10 @@ Open questions:
   `tests/benchmark/capture_history_bench.c`: disabled 963.9 ± 24.1 ms vs
   baseline 958.0 ± 19.2 ms, a difference within noise; enabled 1.093 ± 0.015 s,
   about 1.14× baseline. One workload set on one machine; not a gate yet.
-- The option bit (`0x00080000`) and internal pattern flag `PCRE2_CAPHIST_SET`
-  (`0x02000000`) are provisional fork-local allocations, pending upstream. Check them mechanically against upstream before any rebase or
+- The option bit (`0x00080000`), internal pattern flag `PCRE2_CAPHIST_SET`
+  (`0x02000000`) and error `PCRE2_ERROR_CAPTURE_HISTORY_LIMIT` (-77, the next
+  free number, which upstream will likely claim) are provisional fork-local
+  allocations, pending upstream. Check them mechanically against upstream before any rebase or
   release.
 
 ## Zig

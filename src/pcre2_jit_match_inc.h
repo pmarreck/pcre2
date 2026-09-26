@@ -170,6 +170,7 @@ free the memory that was obtained. */
         (mcontext->match_limit < re->limit_match) ? mcontext->match_limit : re->limit_match;
     arguments.heap_limit =
         (mcontext->heap_limit < re->limit_heap) ? mcontext->heap_limit : re->limit_heap;
+    arguments.capture_history_limit = mcontext->capture_history_limit;
     if (mcontext->jit_callback != NULL)
       jit_stack = mcontext->jit_callback(mcontext->jit_callback_data);
     else
@@ -182,6 +183,7 @@ free the memory that was obtained. */
     arguments.offset_limit = PCRE2_UNSET;
     arguments.limit_match = (MATCH_LIMIT < re->limit_match) ? MATCH_LIMIT : re->limit_match;
     arguments.heap_limit = (HEAP_LIMIT < re->limit_heap) ? HEAP_LIMIT : re->limit_heap;
+    arguments.capture_history_limit = CAPTURE_HISTORY_LIMIT;
     jit_stack = NULL;
   }
 

@@ -311,6 +311,7 @@ static const unsigned char match_error_texts[] =
   /* 75 */
   "disallowed use of \\K in lookaround\0"
   "replacement $' or $_ not supported with partial match\0"
+  "capture history event limit exceeded\0" // fork extension, provisional
   ;
 // clang-format on
 

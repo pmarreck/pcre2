@@ -669,13 +669,16 @@ event array is shared by all frames; each frame's history_top says how many
 events belong to its path, so backtracking to an older frame truncates history
 in O(1) exactly where it restores the frame's ovector. Growth doubles, uses the
 match data's allocator, and shares the heap limit with the backtracking frames:
-it is clamped to what the limit leaves after the frame vector. */
+it is clamped to what the limit leaves after the frame vector. The match context's
+capture-history limit caps the events on the current path. */
 
 static int
 record_capture_event(heapframe *F, pcre2_match_data *match_data, match_block *mb,
                      uint32_t group, PCRE2_SIZE start, PCRE2_SIZE end)
 {
   pcre2_capture_event *event;
+  if (F->history_top >= mb->capture_history_limit)
+    return PCRE2_ERROR_CAPTURE_HISTORY_LIMIT;
   if (F->history_top >= match_data->history_capacity)
   {
     PCRE2_SIZE old_capacity = match_data->history_capacity;
@@ -8370,6 +8373,7 @@ pcre2_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2
 
   mb->heap_limit =
       ((mcontext->heap_limit < re->limit_heap) ? mcontext->heap_limit : re->limit_heap);
+  mb->capture_history_limit = mcontext->capture_history_limit;
 
   mb->match_limit =
       (mcontext->match_limit < re->limit_match) ? mcontext->match_limit : re->limit_match;

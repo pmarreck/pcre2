@@ -511,6 +511,11 @@ bytes in a code unit in that mode. */
 #define PCRE2_HASBSK        0x01000000u /* contains \K */
 #define PCRE2_CAPHIST_SET   0x02000000u /* (*CAPTURE_HISTORY) used (fork extension) */
 
+/* Fork extension: default per-match capture-history event limit. It is a uint32_t
+limit, so an event count always fits in 32 bits. */
+
+#define CAPTURE_HISTORY_LIMIT 0xffffffffu
+
 #define PCRE2_MODE_MASK (PCRE2_MODE8 | PCRE2_MODE16 | PCRE2_MODE32)
 
 /* Values for the matchedby field in a match data block. */

@@ -19,14 +19,14 @@ Completed DFA implementation details are in `docs/PLAN_LOG.md`.
 	- [x] Push capture-history to origin as a branch only; main untouched. (done 2026-09-24 21:42 EDT, bc340132)
 	- [x] Retire this checkout after the pcre2 agent confirms it has the branch; pcre2 agent fetched daf33f08 and 324bdf2e, main 84bf8c8e has no in-flight work. Checkout moved to ~/.Trash; continue in ../pcre2 on branch capture-history. (done 2026-09-25 12:10 EDT)
 - [x] Count history memory against heap_limit, covering frame-driven and possessive (event-driven) growth. (done 2026-09-24 16:48 EDT)
-- [ ] Peter to decide whether to add an explicit per-match event maximum (see reply 2026-09-24).
+- [x] Per-match event limit: pcre2_set/get_capture_history_limit (uint32_t, default UINT32_MAX), PCRE2_ERROR_CAPTURE_HISTORY_LIMIT (-77, provisional), enforced by interpreter and JIT; mutants of either check fail the tests. (Peter chose setter and uint32 range 2026-09-25; done 2026-09-25 23:20 EDT)
 - [x] Record returned captures at subroutine/recursion return (one event per set returned group); error -77 removed. (done 2026-09-24 16:55 EDT)
 - [x] JIT capture history for (*CAPTURE_HISTORY) patterns; interpreter-vs-JIT differential in CI found and fixed an interpreter duplicate-ACCEPT bug. (done 2026-09-24 17:45 EDT)
 - [ ] JIT history for returned-capture recursion (currently JIT_UNSUPPORTED, interpreter runs it).
 - [ ] Consider a PCRE2_JIT_CAPTURE_HISTORY jit-compile option so option-only history can use the JIT.
 - [ ] Turn tests/benchmark/capture_history_bench.c into ./bm with an ndjson log and baseline-vs-current comparison.
 - [x] Add JIT-enabled Nix check (sljit pinned via fetchFromGitHub) to ./test and Mechatron targets. (done 2026-09-24 17:44 EDT)
-- [ ] Add a mechanical check that the fork option bit and internal flag bit do not collide with upstream before rebase/release.
+- [ ] Add a mechanical check that the fork option bit and internal flag bit, error -77 and the fork API names do not collide with upstream before rebase/release.
 - [ ] Benchmark disabled/enabled capture history at N,2N,4N,8N (gap-pattern and finder benchmarks belong to ~/Code/dna_repeats).
 
 ## DFA compatibility query

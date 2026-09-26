@@ -104,4 +104,6 @@ PCRE2_FORK_CAPTURE_HISTORY {
   global:
     pcre2_get_capture_event_count_32;
     pcre2_get_capture_event_pointer_32;
+    pcre2_get_capture_history_limit_32;
+    pcre2_set_capture_history_limit_32;
 } PCRE2_10.49;

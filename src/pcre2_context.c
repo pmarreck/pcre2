@@ -186,6 +186,7 @@ pcre2_match_context PRIV(default_match_context) = {
   HEAP_LIMIT,
   MATCH_LIMIT,
   MATCH_LIMIT_DEPTH,
+  CAPTURE_HISTORY_LIMIT, // Fork extension
 };
 
 /* The create function copies the default into the new memory, but must
@@ -592,6 +593,32 @@ pcre2_set_offset_limit(pcre2_match_context *mcontext, PCRE2_SIZE limit)
     return PCRE2_ERROR_NULL;
 
   mcontext->offset_limit = limit;
+  return 0;
+}
+
+/* Fork extension, provisional: the most capture-history events one match may hold
+on its current path. */
+
+PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
+pcre2_set_capture_history_limit(pcre2_match_context *mcontext, uint32_t limit)
+{
+  if (mcontext == NULL)
+    return PCRE2_ERROR_NULL;
+
+  mcontext->capture_history_limit = limit;
+  return 0;
+}
+
+PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
+pcre2_get_capture_history_limit(pcre2_match_context *mcontext, uint32_t *limit)
+{
+  if (mcontext == NULL)
+    return PCRE2_ERROR_NULL;
+
+  if (limit == NULL)
+    return PCRE2_ERROR_NULL;
+
+  *limit = mcontext->capture_history_limit;
   return 0;
 }
 

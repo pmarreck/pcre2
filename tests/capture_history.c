@@ -417,6 +417,65 @@ static void check_heap_accounting(void)
 	pcre2_code_free(code);
 }
 
+/* Match once with a capture-history event limit; report rc and the published event count. */
+static int match_with_event_limit(const char *pattern, const char *subj, uint32_t opts, uint32_t limit, int jit,
+                                  PCRE2_SIZE *count)
+{
+	pcre2_code *code = compile_ascii(pattern);
+	if (!code || (jit && pcre2_jit_compile(code, PCRE2_JIT_COMPLETE) != 0)) { pcre2_code_free(code); return 1000; }
+	pcre2_match_data *md = pcre2_match_data_create_from_pattern(code, NULL);
+	pcre2_match_context *mc = pcre2_match_context_create(NULL);
+	pcre2_set_capture_history_limit(mc, limit);
+	static PCRE2_UCHAR buf[64];
+	unsigned n = to_code_units(buf, subj);
+	int rc = jit ? pcre2_jit_match(code, buf, n, 0, opts, md, mc) : pcre2_match(code, buf, n, 0, opts | PCRE2_NO_JIT, md, mc);
+	*count = pcre2_get_capture_event_count(md);
+	pcre2_match_context_free(mc);
+	pcre2_match_data_free(md);
+	pcre2_code_free(code);
+	return rc;
+}
+
+/* The per-match event limit (default UINT32_MAX, so a count always fits in uint32_t)
+bounds the events on the current path. Reaching it aborts the match, like the other
+resource limits; events discarded by backtracking do not count. */
+static void check_event_limit(void)
+{
+	static const struct { const char *name, *pattern, *subject; uint32_t opts, limit; int rc; PCRE2_SIZE count; } cases[] = {
+		{ "limit equal to the events needed", "(*CAPTURE_HISTORY)(a)+", "aaaa", 0, 4, 2, 4 },
+		{ "limit one below the events needed", "(*CAPTURE_HISTORY)(a)+", "aaaa", 0, 3, PCRE2_ERROR_CAPTURE_HISTORY_LIMIT, 0 },
+		{ "zero limit with a capture", "(*CAPTURE_HISTORY)(a)", "a", 0, 0, PCRE2_ERROR_CAPTURE_HISTORY_LIMIT, 0 },
+		{ "zero limit without captures", "(*CAPTURE_HISTORY)a", "a", 0, 0, 1, 0 },
+		{ "backtracked events do not count", "(*CAPTURE_HISTORY)(?:(a)(a)(a)x|(a))", "aaa", 0, 3, 5, 1 },
+		{ "path peak above the limit aborts", "(*CAPTURE_HISTORY)(?:(a)(a)(a)x|(a))", "aaa", 0, 2, PCRE2_ERROR_CAPTURE_HISTORY_LIMIT, 0 },
+		{ "limit ignored without history", "(a)+", "aaaa", 0, 0, 2, 0 },
+	};
+	pcre2_match_context *mc = pcre2_match_context_create(NULL);
+	uint32_t got = 0;
+	if (!mc || pcre2_get_capture_history_limit(mc, &got) != 0 || got != UINT32_MAX)
+		fail("event limit", "default limit is not UINT32_MAX");
+	pcre2_set_capture_history_limit(mc, 7);
+	if (pcre2_get_capture_history_limit(mc, &got) != 0 || got != 7) fail("event limit", "set/get round trip");
+	pcre2_match_context_free(mc);
+
+	PCRE2_UCHAR message[128];
+	if (pcre2_get_error_message(PCRE2_ERROR_CAPTURE_HISTORY_LIMIT, message, 128) <= 0)
+		fail("event limit", "no error message for PCRE2_ERROR_CAPTURE_HISTORY_LIMIT");
+
+	uint32_t have_jit = 0;
+	pcre2_config(PCRE2_CONFIG_JIT, &have_jit);
+	for (int jit = 0; jit <= (int)have_jit; ++jit)
+		for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+			PCRE2_SIZE count = 99;
+			int rc = match_with_event_limit(cases[i].pattern, cases[i].subject, cases[i].opts, cases[i].limit, jit, &count);
+			if (rc != cases[i].rc || count != cases[i].count) {
+				fprintf(stderr, "FAIL event limit (%s) %s: rc=%d count=%zu, expected rc=%d count=%zu\n", jit ? "jit" : "interpreter",
+					cases[i].name, rc, (size_t)count, cases[i].rc, (size_t)cases[i].count);
+				++failures;
+			}
+		}
+}
+
 typedef struct { uint32_t last[32]; unsigned n; } callout_log;
 
 static int log_capture_last(pcre2_callout_block *cb, void *data)
@@ -538,6 +597,7 @@ int main(void)
 	check_lifecycle();
 	check_limits();
 	check_heap_accounting();
+	check_event_limit();
 	check_callout_capture_last();
 	check_jit();
 	check_verb_modes();

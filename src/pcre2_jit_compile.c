@@ -198,6 +198,7 @@ typedef struct jit_arguments {
   PCRE2_SPTR history_end;
   sljit_uw history_top;
   sljit_u32 heap_limit;
+  sljit_u32 capture_history_limit;
 } jit_arguments;
 
 #define JIT_NUMBER_OF_COMPILE_MODES 3
@@ -9379,7 +9380,7 @@ compile_recurse_matchingpath(compiler_common *common, PCRE2_SPTR cc, backtrack_c
 events on the current path, kept in the capture_last slot and restored on
 backtracking exactly like capture_last). Returns the new count, or a negative
 error code that aborts the match. History storage is limited by the match heap
-limit, as in the interpreter; the JIT itself uses no heap frames. */
+limit, as in the interpreter, and the event count by the capture-history limit; the JIT itself uses no heap frames. */
 
 static sljit_sw SLJIT_FUNC
 do_capture_history_jit(struct jit_arguments *arguments, sljit_sw top, sljit_sw group,
@@ -9389,6 +9390,8 @@ do_capture_history_jit(struct jit_arguments *arguments, sljit_sw top, sljit_sw g
   PCRE2_SIZE count = (PCRE2_SIZE)top;
   pcre2_capture_event *event;
 
+  if (count >= arguments->capture_history_limit)
+    return PCRE2_ERROR_CAPTURE_HISTORY_LIMIT;
   if (count >= match_data->history_capacity)
   {
     PCRE2_SIZE old_capacity = match_data->history_capacity;

@@ -439,6 +439,7 @@ released, the numbers must not be changed. */
 #define PCRE2_ERROR_DIFFSUBSOPTIONS   (-74)
 #define PCRE2_ERROR_BAD_BACKSLASH_K   (-75)
 #define PCRE2_ERROR_PARTIALSUBS       (-76)
+#define PCRE2_ERROR_CAPTURE_HISTORY_LIMIT (-77) /* fork extension, provisional */
 
 
 /* Request types for pcre2_pattern_info() */
@@ -731,6 +732,10 @@ information. */
   pcre2_get_depth_limit(pcre2_match_context *mcontext, uint32_t *limit);     \
                                                                              \
   PCRE2_EXP_DECL int PCRE2_CALL_CONVENTION                                   \
+  pcre2_get_capture_history_limit(pcre2_match_context *mcontext,             \
+                                  uint32_t *limit);                          \
+                                                                             \
+  PCRE2_EXP_DECL int PCRE2_CALL_CONVENTION                                   \
   pcre2_get_heap_limit(pcre2_match_context *mcontext, uint32_t *limit);      \
                                                                              \
   PCRE2_EXP_DECL int PCRE2_CALL_CONVENTION                                   \
@@ -757,6 +762,10 @@ information. */
                                                                              \
   PCRE2_EXP_DECL int PCRE2_CALL_CONVENTION                                   \
   pcre2_set_depth_limit(pcre2_match_context *mcontext, uint32_t limit);      \
+                                                                             \
+  PCRE2_EXP_DECL int PCRE2_CALL_CONVENTION                                   \
+  pcre2_set_capture_history_limit(pcre2_match_context *mcontext,             \
+                                  uint32_t limit);                           \
                                                                              \
   PCRE2_EXP_DECL int PCRE2_CALL_CONVENTION                                   \
   pcre2_set_heap_limit(pcre2_match_context *mcontext, uint32_t limit);       \
@@ -1104,6 +1113,7 @@ pcre2_compile are called by application code. */
 #define pcre2_get_bsr                         PCRE2_SUFFIX(pcre2_get_bsr_)
 #define pcre2_get_depth_limit                 PCRE2_SUFFIX(pcre2_get_depth_limit_)
 #define pcre2_get_error_message               PCRE2_SUFFIX(pcre2_get_error_message_)
+#define pcre2_get_capture_history_limit       PCRE2_SUFFIX(pcre2_get_capture_history_limit_)
 #define pcre2_get_heap_limit                  PCRE2_SUFFIX(pcre2_get_heap_limit_)
 #define pcre2_get_mark                        PCRE2_SUFFIX(pcre2_get_mark_)
 #define pcre2_get_match_data_heapframes_size  PCRE2_SUFFIX(pcre2_get_match_data_heapframes_size_)
@@ -1148,6 +1158,7 @@ pcre2_compile are called by application code. */
 #define pcre2_set_depth_limit                 PCRE2_SUFFIX(pcre2_set_depth_limit_)
 #define pcre2_set_glob_escape                 PCRE2_SUFFIX(pcre2_set_glob_escape_)
 #define pcre2_set_glob_separator              PCRE2_SUFFIX(pcre2_set_glob_separator_)
+#define pcre2_set_capture_history_limit       PCRE2_SUFFIX(pcre2_set_capture_history_limit_)
 #define pcre2_set_heap_limit                  PCRE2_SUFFIX(pcre2_set_heap_limit_)
 #define pcre2_set_match_limit                 PCRE2_SUFFIX(pcre2_set_match_limit_)
 #define pcre2_set_max_pattern_compiled_length PCRE2_SUFFIX(pcre2_set_max_pattern_compiled_length_)
