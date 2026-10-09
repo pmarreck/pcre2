@@ -9,20 +9,17 @@ dnl The PCRE2_PRERELEASE feature is for identifying release candidates. It might
 dnl be defined as -RC2, for example. For real releases, it should be empty.
 
 m4_define(pcre2_major, [10])
-m4_define(pcre2_minor, [48])
+m4_define(pcre2_minor, [49])
 m4_define(pcre2_prerelease, [-DEV])
-m4_define(pcre2_date, [2025-10-21])
+m4_define(pcre2_date, [2026-11-31])
 
 # Libtool shared library interface versions (current:revision:age)
-m4_define(libpcre2_8_version,     [15:0:15])
-m4_define(libpcre2_16_version,    [15:0:15])
-m4_define(libpcre2_32_version,    [15:0:15])
-m4_define(libpcre2_posix_version, [3:7:0])
+m4_define(libpcre2_8_version,     [16:0:16])
+m4_define(libpcre2_16_version,    [16:0:16])
+m4_define(libpcre2_32_version,    [16:0:16])
+m4_define(libpcre2_posix_version, [3:8:0])
 
-# NOTE: The CMakeLists.txt file searches for the above variables in the first
-# 50 lines of this file. Please update that if the variables above are moved.
-
-AC_PREREQ([2.69])
+AC_PREREQ([2.71])
 AC_INIT([PCRE2],pcre2_major.pcre2_minor[]pcre2_prerelease,[],[pcre2])
 AC_CONFIG_SRCDIR([src/pcre2.h.in])
 AM_INIT_AUTOMAKE([dist-bzip2 dist-zip foreign])
@@ -51,7 +48,8 @@ AC_CONFIG_MACRO_DIR([m4])
 
 remember_set_CFLAGS="$CFLAGS"
 
-m4_version_prereq(2.70, [AC_PROG_CC], [AC_PROG_CC_C99])
+AC_PROG_CC
+AS_CASE([$ac_prog_cc_stdc], [c89|no], [AC_MSG_FAILURE([C compiler does not support C99])])
 AM_PROG_CC_C_O
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -76,8 +74,12 @@ AC_TYPE_INT64_T
 PCRE2_ZOS_FIXES
 
 AC_PROG_INSTALL
-LT_INIT([win32-dll])
 AC_PROG_LN_S
+
+# As well as LT_INIT, we use LT_OUTPUT so that PCRE2_CHECK_VSCRIPT can invoke
+# libtool to test version scripts correctly.
+LT_INIT([win32-dll])
+LT_OUTPUT
 
 AC_SYS_LARGEFILE
 
@@ -87,21 +89,21 @@ PCRE2_VISIBILITY
 
 # Check for the availability of -Wl,--version-script (or -Wl,-M on Solaris)
 
-AX_CHECK_VSCRIPT
+PCRE2_CHECK_VSCRIPT
 
 # Check for Clang __attribute__((uninitialized)) feature
 
-AC_MSG_CHECKING([for __attribute__((uninitialized))])
 AC_LANG_PUSH([C])
 tmp_CFLAGS=$CFLAGS
 if test $WORKING_WERROR -eq 1; then
   CFLAGS="$CFLAGS -Werror"
 fi
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,
-                   [[char buf[128] __attribute__((uninitialized));(void)buf]])],
-                   [pcre2_cc_cv_attribute_uninitialized=yes],
-                   [pcre2_cc_cv_attribute_uninitialized=no])
-AC_MSG_RESULT([$pcre2_cc_cv_attribute_uninitialized])
+AC_CACHE_CHECK([for __attribute__((uninitialized))], [pcre2_cc_cv_attribute_uninitialized], [
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,
+                     [[char buf[128] __attribute__((uninitialized));(void)buf]])],
+                     [pcre2_cc_cv_attribute_uninitialized=yes],
+                     [pcre2_cc_cv_attribute_uninitialized=no])
+])
 if test "$pcre2_cc_cv_attribute_uninitialized" = yes; then
   AC_DEFINE([HAVE_ATTRIBUTE_UNINITIALIZED], 1, [Define this if your compiler
              supports __attribute__((uninitialized))])
@@ -111,12 +113,12 @@ AC_LANG_POP([C])
 
 # Check for the assume() builtin
 
-AC_MSG_CHECKING([for __assume()])
 AC_LANG_PUSH([C])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[__assume(1)]])],
-  [pcre2_cc_cv_builtin_assume=yes],
-  [pcre2_cc_cv_builtin_assume=no])
-AC_MSG_RESULT([$pcre2_cc_cv_builtin_assume])
+AC_CACHE_CHECK([for __assume()], [pcre2_cc_cv_builtin_assume], [
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[__assume(1)]])],
+    [pcre2_cc_cv_builtin_assume=yes],
+    [pcre2_cc_cv_builtin_assume=no])
+])
 if test "$pcre2_cc_cv_builtin_assume" = yes; then
   AC_DEFINE([HAVE_BUILTIN_ASSUME], 1,
     [Define this if your compiler provides __assume()])
@@ -125,34 +127,34 @@ AC_LANG_POP([C])
 
 # Check for the mul_overflow() builtin
 
-AC_MSG_CHECKING([for __builtin_mul_overflow()])
 AC_LANG_PUSH([C])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-		#ifdef HAVE_SYS_TYPES_H
-		#include <sys/types.h>
-		#endif
-		#include <stddef.h>
+AC_CACHE_CHECK([for __builtin_mul_overflow()], [pcre2_cc_cv_builtin_mul_overflow], [
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+    #ifdef HAVE_SYS_TYPES_H
+    #include <sys/types.h>
+    #endif
+    #include <stddef.h>
 
-		int a, b;
-		size_t m;
-	]], [[__builtin_mul_overflow(a, b, &m)]])],
-	[pcre2_cc_cv_builtin_mul_overflow=yes],
-	[pcre2_cc_cv_builtin_mul_overflow=no])
-AC_MSG_RESULT([$pcre2_cc_cv_builtin_mul_overflow])
+    int a, b;
+    size_t m;
+  ]], [[__builtin_mul_overflow(a, b, &m)]])],
+  [pcre2_cc_cv_builtin_mul_overflow=yes],
+  [pcre2_cc_cv_builtin_mul_overflow=no])
+])
 if test "$pcre2_cc_cv_builtin_mul_overflow" = yes; then
-	AC_DEFINE([HAVE_BUILTIN_MUL_OVERFLOW], 1,
-		[Define this if your compiler provides __builtin_mul_overflow()])
+  AC_DEFINE([HAVE_BUILTIN_MUL_OVERFLOW], 1,
+    [Define this if your compiler provides __builtin_mul_overflow()])
 fi
 AC_LANG_POP([C])
 
 # Check for the unreachable() builtin
 
-AC_MSG_CHECKING([for __builtin_unreachable()])
 AC_LANG_PUSH([C])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[int r;]], [[if (r) __builtin_unreachable()]])],
-  [pcre2_cc_cv_builtin_unreachable=yes],
-  [pcre2_cc_cv_builtin_unreachable=no])
-AC_MSG_RESULT([$pcre2_cc_cv_builtin_unreachable])
+AC_CACHE_CHECK([for __builtin_unreachable()], [pcre2_cc_cv_builtin_unreachable], [
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[int r;]], [[if (r) __builtin_unreachable()]])],
+    [pcre2_cc_cv_builtin_unreachable=yes],
+    [pcre2_cc_cv_builtin_unreachable=no])
+])
 if test "$pcre2_cc_cv_builtin_unreachable" = yes; then
   AC_DEFINE([HAVE_BUILTIN_UNREACHABLE], 1,
     [Define this if your compiler provides __builtin_unreachable()])
@@ -232,17 +234,21 @@ AC_ARG_ENABLE(jit,
 
 # This code enables JIT if the hardware supports it.
 if test "$enable_jit" = "auto"; then
-  AC_LANG(C)
+  AC_LANG_PUSH([C])
   SAVE_CPPFLAGS=$CPPFLAGS
-  CPPFLAGS=-I$srcdir
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
-  #define SLJIT_CONFIG_AUTO 1
-  #include "deps/sljit/sljit_src/sljitConfigCPU.h"
-  #if (defined SLJIT_CONFIG_UNSUPPORTED && SLJIT_CONFIG_UNSUPPORTED)
-  #error unsupported
-  #endif]])], enable_jit=yes, enable_jit=no)
+  CPPFLAGS="$CPPFLAGS -I$srcdir"
+  AC_CACHE_CHECK([whether JIT is supported on this hardware], [pcre2_cv_jit_supported], [
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+      #define SLJIT_CONFIG_AUTO 1
+      #include "deps/sljit/sljit_src/sljitConfigCPU.h"
+      #if (defined SLJIT_CONFIG_UNSUPPORTED && SLJIT_CONFIG_UNSUPPORTED)
+      #error unsupported
+      #endif]]
+    )], [pcre2_cv_jit_supported=yes], [pcre2_cv_jit_supported=no])
+  ])
   CPPFLAGS=$SAVE_CPPFLAGS
-  echo checking for JIT support on this hardware... $enable_jit
+  AC_LANG_POP([C])
+  enable_jit=$pcre2_cv_jit_supported
 fi
 
 # Handle --enable-jit-sealloc (disabled by default and only experimental)
@@ -618,25 +624,47 @@ fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 
-AC_C_CONST
 AC_TYPE_SIZE_T
 
 # Checks for library functions.
 
-AC_CHECK_FUNCS(memfd_create mkostemp secure_getenv)
-AC_MSG_CHECKING([for realpath])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#include <stdlib.h>
-#include <limits.h>
-]],[[
-char buffer[PATH_MAX];
-realpath(".", buffer);
-]])],
-[AC_MSG_RESULT([yes])
- AC_DEFINE([HAVE_REALPATH], 1,
-  [Define to 1 if you have the `realpath' function.])
-],
-AC_MSG_RESULT([no]))
+AC_CHECK_FUNCS(memfd_create mkostemp secure_getenv setrlimit)
+
+AC_LANG_PUSH([C])
+AC_CACHE_CHECK([for standard C atomics], [pcre2_cv_c_atomics], [
+  AC_LINK_IFELSE([
+    AC_LANG_SOURCE([[
+      #ifdef __STDC_NO_ATOMICS__
+      #error "C compiler does not support standard C atomics"
+      #endif
+      #include <stdatomic.h>
+      int main(void) {
+        atomic_int value;
+        atomic_init(&value, 0);
+        return atomic_load(&value);
+      }
+    ]])
+  ], [pcre2_cv_c_atomics=yes], [pcre2_cv_c_atomics=no])
+])
+AS_IF([test "$pcre2_cv_c_atomics" = yes], [
+  AC_DEFINE([HAVE_STDATOMIC_H], 1, [Define to 1 if stardard (C11 or later) atomics are available.])
+])
+AC_LANG_POP([C])
+
+AC_LANG_PUSH([C])
+AC_CACHE_CHECK([for realpath], [pcre2_cv_func_realpath], [
+  AC_LINK_IFELSE([
+    AC_LANG_SOURCE([[
+      #include <stdlib.h>
+      #include <limits.h>
+      int main(int c, char *v[]) { char buf[PATH_MAX]; return realpath(v[c], buf) == NULL; }
+    ]])
+  ], [pcre2_cv_func_realpath=yes], [pcre2_cv_func_realpath=no])
+])
+AS_IF([test "$pcre2_cv_func_realpath" = yes], [
+  AC_DEFINE([HAVE_REALPATH], 1, [Define to 1 if you have the `realpath' function.])
+])
+AC_LANG_POP([C])
 
 # Check for the availability of libz (aka zlib)
 
@@ -665,17 +693,20 @@ AC_CHECK_HEADERS([bzlib.h], [HAVE_BZLIB_H=1])
 #
 # Custom test follows
 
-AC_MSG_CHECKING([for libbz2])
-OLD_LIBS="$LIBS"
-LIBS="$LIBS -lbz2"
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#ifdef HAVE_BZLIB_H
-#include <bzlib.h>
-#endif]],
-[[return (int)BZ2_bzopen("conftest", "rb");]])],
-[AC_MSG_RESULT([yes]);HAVE_LIBBZ2=1; break;],
-AC_MSG_RESULT([no]))
-LIBS="$OLD_LIBS"
+AC_LANG_PUSH([C])
+AC_CACHE_CHECK([for libbz2], [pcre2_cv_lib_bz2], [
+  OLD_LIBS="$LIBS"
+  LIBS="$LIBS -lbz2"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+    #ifdef HAVE_BZLIB_H
+    #include <bzlib.h>
+    #endif]],
+    [[return (int)BZ2_bzopen("conftest", "rb");]])
+  ], [pcre2_cv_lib_bz2=yes], [pcre2_cv_lib_bz2=no])
+  LIBS="$OLD_LIBS"
+])
+AS_IF([test "$pcre2_cv_lib_bz2" = yes], [HAVE_LIBBZ2=1])
+AC_LANG_POP([C])
 
 # Check for the availability of libreadline
 
@@ -1043,18 +1074,18 @@ EXTRA_LIBPCRE2_POSIX_LDFLAGS="$EXTRA_LIBPCRE2_POSIX_LDFLAGS \
 
 # Append each library's version script, if the platform supports it.
 
-if test x$ax_check_vscript_flag != x ; then
+if test x$pcre2_check_vscript_flag != x ; then
   EXTRA_LIBPCRE2_8_LDFLAGS="$EXTRA_LIBPCRE2_8_LDFLAGS \
-    -Wl,$ax_check_vscript_flag,\$(srcdir)/src/libpcre2-8.sym"
+    -Wl,$pcre2_check_vscript_flag,\$(builddir)/src/libpcre2-8.sym"
 
   EXTRA_LIBPCRE2_16_LDFLAGS="$EXTRA_LIBPCRE2_16_LDFLAGS \
-    -Wl,$ax_check_vscript_flag,\$(srcdir)/src/libpcre2-16.sym"
+    -Wl,$pcre2_check_vscript_flag,\$(builddir)/src/libpcre2-16.sym"
 
   EXTRA_LIBPCRE2_32_LDFLAGS="$EXTRA_LIBPCRE2_32_LDFLAGS \
-    -Wl,$ax_check_vscript_flag,\$(srcdir)/src/libpcre2-32.sym"
+    -Wl,$pcre2_check_vscript_flag,\$(builddir)/src/libpcre2-32.sym"
 
   EXTRA_LIBPCRE2_POSIX_LDFLAGS="$EXTRA_LIBPCRE2_POSIX_LDFLAGS \
-    -Wl,$ax_check_vscript_flag,\$(srcdir)/src/libpcre2-posix.sym"
+    -Wl,$pcre2_check_vscript_flag,\$(builddir)/src/libpcre2-posix.sym"
 fi
 
 AC_SUBST(EXTRA_LIBPCRE2_8_LDFLAGS)
@@ -1179,15 +1210,16 @@ fi # enable_coverage
 
 AM_CONDITIONAL([WITH_GCOV],[test "x$enable_coverage" = "xyes"])
 
-AC_MSG_CHECKING([whether Intel CET is enabled])
 AC_LANG_PUSH([C])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,
-                   [[#ifndef __CET__
-# error CET is not enabled
-#endif]])],
-                   [pcre2_cc_cv_intel_cet_enabled=yes],
-                   [pcre2_cc_cv_intel_cet_enabled=no])
-AC_MSG_RESULT([$pcre2_cc_cv_intel_cet_enabled])
+AC_CACHE_CHECK([whether Intel CET is enabled], [pcre2_cc_cv_intel_cet_enabled], [
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+    #ifndef __CET__
+    # error CET is not enabled
+    #endif
+  ]])],
+  [pcre2_cc_cv_intel_cet_enabled=yes],
+  [pcre2_cc_cv_intel_cet_enabled=no])
+])
 if test "$pcre2_cc_cv_intel_cet_enabled" = yes; then
   CET_CFLAGS="-mshstk"
   AC_SUBST([CET_CFLAGS])
@@ -1198,17 +1230,30 @@ AC_LANG_POP([C])
 # Pass empty LIB_POSTFIX to *.pc files and pcre2-config here.
 AC_SUBST(LIB_POSTFIX)
 
+# Set the extra "local: *" symbol section conditionally for Solaris (effectively).
+
+if test x$pcre2_check_vscript_flag != x && test x$pcre2_check_vscript_no_star = xno; then
+  PCRE2_EXTRA_LOCAL_SYMS="  local: *;"
+else
+  PCRE2_EXTRA_LOCAL_SYMS=""
+fi
+AC_SUBST([PCRE2_EXTRA_LOCAL_SYMS])
+
 # Produce these files, in addition to config.h.
 
 AC_CONFIG_FILES(
-	Makefile
-	libpcre2-8.pc
-	libpcre2-16.pc
-	libpcre2-32.pc
-	libpcre2-posix.pc
-	pcre2-config
-	src/pcre2.h
-)
+  Makefile
+  libpcre2-8.pc
+  libpcre2-16.pc
+  libpcre2-32.pc
+  libpcre2-posix.pc
+  pcre2-config
+  src/pcre2.h
+  src/libpcre2-8.sym
+  src/libpcre2-16.sym
+  src/libpcre2-32.sym
+  src/libpcre2-posix.sym
+  )
 
 # Make the generated script files executable.
 AC_CONFIG_COMMANDS([script-chmod], [chmod a+x pcre2-config])
@@ -1250,7 +1295,7 @@ fi
 with_symbol_versioning=n/a
 if test x$want_symvers != xyes; then
   with_symbol_versioning=no
-elif test x$ax_check_vscript_flag != x; then
+elif test x$pcre2_check_vscript_flag != x; then
   with_symbol_versioning=yes
 fi
 
